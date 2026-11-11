@@ -1,0 +1,23 @@
+name: like-cidade
+services:
+  app:
+    build: .
+    image: like-cidade:${LIKE_CIDADE_RELEASE:-local}
+    container_name: like-cidade-app
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data:/data
+    networks:
+      - proxy
+networks:
+  proxy:
+    name: proxy-network
+    external: true

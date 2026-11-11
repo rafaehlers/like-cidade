@@ -1,0 +1,9 @@
+**
+!package.json
+!package-lock.json
+!dist/
+!dist/**
+!dist-server/
+!dist-server/**
+!demo-data/
+!demo-data/**

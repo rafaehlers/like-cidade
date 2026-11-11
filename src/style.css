@@ -295,8 +295,7 @@
   .brand { font-size: 21px; gap: 0; letter-spacing: -.9px; }
   .brand img { width: 38px; height: 38px; }
   .header-actions { gap: 9px; }
-  .header-report-button { width: 36px; height: 36px; padding: 0; justify-content: center; border-radius: 10px; }
-  .header-report-button span { display: none; }
+  .header-report-button { display: none; }
   .demo-label, .help-button span, .profile-text small { display: none; }
   .help-button { display: none; }
   .profile-selector { padding-left: 9px; }
@@ -317,9 +316,11 @@
   .map-controls { bottom: 44px; right: 14px; }
   .map-style-switch { bottom: 44px; left: 14px; }
   .mobile-tabs { display: flex; align-items: center; gap: 8px; padding: 9px 18px max(10px, env(safe-area-inset-bottom)); border-top: 1px solid var(--shell-border); background: var(--surface); flex-shrink: 0; }
-  .mobile-tabs>button { display: flex; align-items: center; justify-content: center; gap: 7px; flex: 1; padding: 11px; font-size: 12px; color: var(--text-muted); border-radius: 10px; }
+  .mobile-tabs>button { display: flex; align-items: center; justify-content: center; gap: 7px; flex: 1; min-height: 44px; padding: 11px; font-size: 12px; color: var(--text-muted); border-radius: 10px; }
   .mobile-tabs>button[aria-pressed=true] { background: var(--tabs-active); color: var(--accent); font-weight: 600; }
   .mobile-tabs>button span { font-size: 9px; background: var(--border-soft); border-radius: 4px; padding: 1px 4px; }
+  .mobile-tabs>.mobile-report-button { flex: 0 0 44px; height: 44px; padding: 0; background: var(--color-coral); color: white; border-radius: 12px; }
+  .mobile-tabs>.mobile-report-button:hover { background: var(--color-red-600); }
   .sidebar-intro { padding: 23px 24px 14px; }
   .sidebar-intro h1 { font-size: 29px; }
   .list-heading { padding-top: 20px; }

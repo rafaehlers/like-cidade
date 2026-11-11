@@ -28,7 +28,7 @@ O comando `npm run dev` inicia a API em `127.0.0.1:3001` e o Vite em `localhost:
 ### Google Cloud
 
 1. Habilite **Maps JavaScript API** em um projeto com faturamento configurado.
-2. Habilite também **Geocoding API**, usada para identificar a cidade no centro do mapa. Crie uma chave para uso em navegador. Restrinja a chave às APIs Maps JavaScript e Geocoding e aos sites autorizados, por exemplo `http://localhost:5173/*` e, quando for publicar, o endereço HTTPS escolhido em `rafaellers.cloud`.
+2. Habilite também **Geocoding API**, usada para identificar a cidade no centro do mapa. Crie uma chave para uso em navegador. Restrinja a chave às APIs Maps JavaScript e Geocoding e aos sites autorizados, por exemplo `http://localhost:5173/*` e, `https://likecidade.com.br/*` e `https://www.likecidade.com.br/*`.
 3. Não é necessário Map ID: o mapa usa estilo local para ocultar nomes e ícones de pontos de interesse e transporte, mantendo ruas, seus nomes e a geografia. Os pins dos relatos e a localização usam HTML overlays. A variável antiga `VITE_GOOGLE_MAPS_MAP_ID`, se existir no `.env`, não é utilizada.
 
 Este mockup não usa Places. O nome da cidade na barra superior acompanha o centro do mapa usando geocodificação reversa do Google. A consulta acontece 700 ms após o mapa parar de se mover, não é repetida ao apenas mudar o zoom sem mover o centro, e respostas de posições anteriores são ignoradas. Sem resultado ou em caso de falha, aparece “Região do mapa”. A rua do relato também é sugerida pela Geocoding API a partir das coordenadas do pin/GPS, e o morador pode corrigir ou acrescentar uma referência. As variáveis com prefixo `VITE_` ficam acessíveis ao navegador após o build; o `.env` não transforma a chave de navegador em segredo. Restrinja seu uso no Google Cloud.
@@ -40,6 +40,7 @@ Documentação: [carregamento](https://developers.google.com/maps/documentation/
 - Ao abrir, o navegador pede acesso à localização. Se negar, o mapa começa em Itajaí. O botão de localização permite tentar novamente, respeitando as permissões do navegador.
 - Troque o seletor no topo: **Rafael, Felipe, Gabriel, Sérgio e Ricardo, moradores**, **Marcos, representante do órgão**, ou **Admin, administrador**. Cada morador tem identidade própria, com apoios e comentários independentes. Não existe login nem verificação real de permissões.
 - Moradores e administrador: clique em **Reportar algo**, depois no ponto do mapa. Complete título, categoria e foto opcional.
+- No celular, o botão **+** de reportar fica na barra inferior, à direita de **Relatos**, disponível tanto no mapa quanto na lista. No desktop, continua na barra superior.
 - A rua é sugerida automaticamente a partir do ponto marcado, do GPS ou das coordenadas ajustadas, usando a Geocoding API já configurada. O campo continua editável. Uma referência digitada não é sobrescrita; nesse caso, é possível aplicar a sugestão explicitamente. Sem resultado ou conexão, o preenchimento manual continua disponível.
 - Sem a chave configurada, o restante do mockup funciona, com localização inicial de Itajaí e ajuste manual de coordenadas no formulário. O mapa não é simulado nem substituído por outro fornecedor.
 - Clique em um relato na lista ou em um pin para abrir detalhes, apoiar e comentar.
@@ -47,6 +48,8 @@ Documentação: [carregamento](https://developers.google.com/maps/documentation/
 - O botão de lua/sol na barra superior alterna entre **modo claro e escuro**, incluindo cartões, formulários e o mapa de ruas. A preferência é salva neste navegador e aplicada antes da primeira renderização; sem uma escolha salva, acompanha o tema do sistema. As imagens de satélite mantêm suas cores originais.
 - Representante e administrador podem atualizar a situação. O administrador pode remover relatos.
 - Os filtros e a lista acompanham a área visível do mapa. Os três relatos iniciais são exemplos fictícios, identificados na interface.
+
+Para popular as cidades de teste, execute `npm run build` e `npm run seed:demo`. O conjunto em `demo-data/` adiciona 20 relatos fictícios por cidade (Balneário Camboriú, Itajaí e Navegantes), com fotos ilustrativas licenciadas, créditos, apoios, comentários e históricos simulados. Os registros existentes são preservados e executar novamente não duplica os exemplos nem desfaz suas interações. Reinicie a aplicação após importar para atualizar as conexões SSE. Veja `demo-data/README.md` para os comandos da VPS e detalhes das fontes.
 
 ## Dados compartilhados e atualizações em tempo real
 
@@ -74,17 +77,36 @@ O build gera `dist/` (React) e `dist-server/` (servidor). `npm start` serve apli
 
 As variáveis `VITE_` são incorporadas no build: depois de alterar a chave do Maps ou o agrupamento, gere novamente. `HOST`, `PORT` e `SQLITE_PATH` são configurações do servidor, lidas na inicialização, e não entram no JavaScript do navegador.
 
-## Preparação para a VPS
+## Publicação na VPS
 
-A aplicação está preparada, mas ainda não foi publicada na VPS. Sugestão de endereço: `likecidade.rafaellers.cloud`.
+A demonstração está publicada em **https://likecidade.com.br**, também acessível por **https://www.likecidade.com.br**. Ambos redirecionam HTTP para HTTPS e usam certificado Let's Encrypt gerenciado pelo Nginx Proxy Manager.
 
-1. Instale Node.js 22.18 ou superior. Coloque o projeto em `/opt/like-cidade` e execute `npm ci` e `npm run build`, com o `.env` preenchido para o domínio final.
-2. Crie o usuário de serviço `likecidade` e a pasta `/var/lib/like-cidade`, com permissão de escrita para esse usuário. No `.env` da VPS, use `HOST=127.0.0.1`, `PORT=3001` e `SQLITE_PATH=/var/lib/like-cidade/like-cidade.sqlite`. Mantenha o banco fora da pasta de publicação.
-3. Ajuste o caminho do Node no `like-cidade.service.example`, instale como serviço systemd e inicie-o. O serviço deve executar uma única instância de `dist-server/server/index.js`.
-4. Configure o DNS do subdomínio e use `Caddyfile.example` como proxy para a porta 3001. O `flush_interval -1` mantém a entrega imediata dos eventos SSE. Caddy fornece HTTPS, necessário para GPS fora de localhost. A raiz do domínio existente não precisa ser alterada.
-5. Autorize o domínio final nas restrições da chave Google. Em atualizações, preserve `.env` e a pasta do SQLite; substitua os arquivos da aplicação, gere o build e reinicie o serviço. Os clientes SSE reconectam automaticamente.
+- VPS: `76.13.123.75`; instalação em `/opt/like-cidade`.
+- Container `like-cidade-app`, Node.js 22, iniciado por `compose.yaml` com reinício automático.
+- A porta 3000 fica apenas na rede Docker `proxy-network`, compartilhada com o Nginx. Não há nova porta pública da aplicação.
+- SQLite persistente em `/opt/like-cidade/data/like-cidade.sqlite`, montado como `/data`. A pasta deve pertencer ao UID/GID `1000:1000`, usado pelo Node no container.
+- O proxy dos dois domínios encaminha para `http://like-cidade-app:3000`, com **Force SSL** e **HTTP/2 Support** ativos.
+- `nginx-proxy-manager.conf.example` registra a configuração avançada aplicada ao host. A localização exata `location = /api/events` evita que uma regra geral de SSE do servidor encaminhe os eventos para outro aplicativo. Buffering e cache ficam desativados para os eventos.
+
+### Atualizar a aplicação
+
+1. Na máquina de desenvolvimento, mantenha a chave de navegador no `.env` e gere os arquivos com `npm ci` e `npm run build`. A chave Google deve autorizar os dois domínios acima.
+2. Envie `dist/`, `dist-server/`, `demo-data/`, `package.json`, `package-lock.json`, `Dockerfile`, `.dockerignore` e `compose.yaml` para `/opt/like-cidade`. Preserve a pasta `data/` e o `.env` do servidor.
+3. O `.env` do servidor contém `LIKE_CIDADE_RELEASE`, usado como etiqueta da imagem. Atualize essa etiqueta para identificar a nova versão. Ele não precisa receber a chave do Maps, já incorporada no build do navegador.
+4. Em `/opt/like-cidade`, execute `docker compose up -d --build`. O Dockerfile instala somente as dependências de produção e usa os arquivos compilados previamente; não executa o build do React.
+5. Confira `docker compose ps` e `https://likecidade.com.br/api/health`. O banco continua no volume, e as conexões SSE reconectam após o reinício.
+
+A primeira publicação iniciou um banco próprio com os três relatos fictícios. O banco local de desenvolvimento permanece independente. Os perfis de demonstração e o tema ficam em cada navegador; relatos e interações da versão publicada são compartilhados pelo banco da VPS.
 
 ### Backup do SQLite
+
+Na VPS, em `/opt/like-cidade`:
+
+```sh
+docker compose exec -T app node dist-server/server/backup.js
+```
+
+Em uma instalação local:
 
 ```sh
 npm run backup
