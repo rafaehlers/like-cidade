@@ -1,0 +1,19 @@
+[Unit]
+Description=Like Cidade shared demo (SQLite and SSE)
+After=network.target
+
+[Service]
+Type=simple
+User=likecidade
+Group=likecidade
+WorkingDirectory=/opt/like-cidade
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/like-cidade/.env
+# Adjust this path if Node.js is installed elsewhere on the VPS.
+ExecStart=/usr/bin/node /opt/like-cidade/dist-server/server/index.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

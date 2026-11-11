@@ -1,0 +1,6 @@
+# Exemplo para a VPS. O processo Node serve React, API e SSE na mesma origem.
+likecidade.rafaellers.cloud {
+    reverse_proxy 127.0.0.1:3001 {
+        flush_interval -1
+    }
+}
