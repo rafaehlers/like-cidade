@@ -57,7 +57,7 @@ test('independent users share atomic supports/comments and photos survive a serv
   assert.equal(created.status, 201);
   const initial = await created.json() as IssueSnapshot & { createdId: string };
   const id = initial.createdId;
-  const people = ['resident', 'resident-felipe', 'resident-gabriel', 'resident-sergio'];
+  const people = ['resident', 'resident-felipe', 'resident-gabriel', 'resident-sergio', 'resident-ricardo'];
   const responses = await Promise.all([
     ...people.map(userId => api.request(`/issues/${id}/support`, 'PUT', { userId, supported: true })),
     ...people.slice(0, 2).map(userId => api.request(`/issues/${id}/comments`, 'POST', { userId, text: `Comentário de ${userId}` })),

@@ -20,8 +20,9 @@ export const PEOPLE = {
   'resident-felipe': { name: 'Felipe', fullName: 'Felipe · Morador', role: 'Morador', type: 'resident', initials: 'FE' },
   'resident-gabriel': { name: 'Gabriel', fullName: 'Gabriel · Morador', role: 'Morador', type: 'resident', initials: 'GA' },
   'resident-sergio': { name: 'Sérgio', fullName: 'Sérgio · Morador', role: 'Morador', type: 'resident', initials: 'SE' },
+  'resident-ricardo': { name: 'Ricardo', fullName: 'Ricardo · Morador', role: 'Morador', type: 'resident', initials: 'RI' },
   agency: { name: 'Marcos', fullName: 'Marcos · Representante do órgão', role: 'Representante do órgão', type: 'agency', initials: 'MA' },
-  admin: { name: 'Rafael', fullName: 'Rafael · Administrador', role: 'Administrador', type: 'admin', initials: 'RA' },
+  admin: { name: 'Admin', fullName: 'Admin · Administrador', role: 'Administrador', type: 'admin', initials: 'AD' },
 } as const;
 export function isUserId(value: unknown): value is UserId { return typeof value === 'string' && Object.hasOwn(PEOPLE, value); }
 export function toggleSupport(likes: UserId[], userId: UserId): UserId[] {

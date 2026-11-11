@@ -3,6 +3,36 @@ import assert from 'node:assert/strict';
 import { inBounds, validPosition, canManage, seedIssues, PEOPLE, isUserId, toggleSupport, type Role, type UserId } from './domain';
 import { cityLabel } from './mapCity';
 import { createIssueLayer } from './mapClusters';
+import { streetLabel } from './mapAddress';
+
+test('street suggestions use structured street, number, neighborhood and Brazilian municipality', () => {
+  const component = (long_name: string, type: string, short_name = long_name) => ({ long_name, short_name, types: [type] });
+  const results = [{ address_components: [
+    component('Centro', 'sublocality_level_1'), component('Brasil', 'country', 'BR'),
+    component('72', 'street_number'), component('Itajaí', 'administrative_area_level_2'),
+    component('Rua Hercílio Luz', 'route'), component('Santa Catarina', 'administrative_area_level_1', 'SC'),
+  ] }];
+  assert.equal(streetLabel(results), 'Rua Hercílio Luz, 72 — Centro, Itajaí');
+});
+
+test('street suggestions skip results without a road and do not invent a street from city/plus-code results', () => {
+  const country = { long_name: 'Brasil', short_name: 'BR', types: ['country'] };
+  const city = { long_name: 'Itajaí', short_name: 'Itajaí', types: ['administrative_area_level_2'] };
+  assert.equal(streetLabel([]), undefined);
+  assert.equal(streetLabel([{ address_components: [country, city] }]), undefined);
+  assert.equal(streetLabel([
+    { address_components: [country, city] },
+    { address_components: [country, city, { long_name: 'Itajaí', short_name: 'Itajaí', types: ['sublocality_level_1'] }, { long_name: 'Rua das Flores', short_name: 'Rua das Flores', types: ['route'] }] },
+  ]), 'Rua das Flores — Itajaí');
+});
+
+test('automatic street values respect the existing 140-character report limit', () => {
+  const street = 'Rua das Palmeiras';
+  assert.equal(streetLabel([{ address_components: [
+    { long_name: street, short_name: street, types: ['route'] },
+    { long_name: 'Bairro '.repeat(30), short_name: 'Bairro', types: ['neighborhood'] },
+  ] }]), street);
+});
 
 test('map groups nearby reports when zoomed out and restores category pins on expansion', () => {
   const issues = seedIssues();
@@ -83,21 +113,23 @@ test('example data is explicitly fictional and contains valid coordinates', () =
   assert.ok(issues.every(i => i.sample && validPosition(i)));
 });
 
-test('the four residents can support independently without sharing staff permissions', () => {
+test('the five residents can support independently without sharing staff permissions', () => {
   const residents = Object.entries(PEOPLE).filter(([, person]) => person.type === 'resident');
-  assert.deepEqual(residents.map(([, person]) => person.name), ['Rafael', 'Felipe', 'Gabriel', 'Sérgio']);
+  assert.deepEqual(residents.map(([, person]) => person.name), ['Rafael', 'Felipe', 'Gabriel', 'Sérgio', 'Ricardo']);
   let likes: UserId[] = [];
   for (const [id, person] of residents) {
     likes = toggleSupport(likes, id as UserId);
     assert.equal(canManage(person.type), false);
   }
-  assert.equal(likes.length, 4);
+  assert.equal(likes.length, 5);
   const restored: UserId[] = JSON.parse(JSON.stringify(likes));
   likes = toggleSupport(restored, 'resident-felipe');
-  assert.equal(likes.length, 3);
+  assert.equal(likes.length, 4);
   assert.ok(likes.includes('resident'));
   assert.ok(likes.includes('resident-gabriel'));
   assert.ok(likes.includes('resident-sergio'));
+  assert.ok(likes.includes('resident-ricardo'));
+  assert.equal(PEOPLE.admin.name, 'Admin');
   assert.equal(likes.includes('resident-felipe'), false);
   assert.ok(isUserId('resident')); // Preserve existing stored support and account IDs.
   assert.equal(isUserId('__proto__'), false);

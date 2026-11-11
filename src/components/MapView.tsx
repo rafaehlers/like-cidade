@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LocateFixed, MapPinned, Plus, Minus, RefreshCw, X, MousePointer2 } from 'lucide-react';
+import { LocateFixed, Map as MapIcon, MapPinned, Plus, Minus, RefreshCw, Satellite, X, MousePointer2 } from 'lucide-react';
 import { CENTER, type Category, type Issue, type Position } from '../domain';
 import { loadMaps } from '../maps';
 import { createMapMarker } from '../mapMarker';
 import CategoryIcon from './CategoryIcon';
 import { createIssueLayer } from '../mapClusters';
+import { mapStyles } from '../mapStyles';
+import type { Theme } from '../useTheme';
 
 const CLUSTERING_ENABLED = import.meta.env.VITE_MAP_CLUSTERING_ENABLED?.trim().toLowerCase() !== 'false';
 
 type Props = {
-  issues: Issue[]; selectedId?: string; center: Position; userLocation?: Position;
+  theme: Theme; issues: Issue[]; selectedId?: string; center: Position; userLocation?: Position;
   placing: boolean; onSelect: (id: string) => void; onPick: (p: Position) => void;
   onBounds: (bounds: google.maps.LatLngBoundsLiteral) => void;
   onCenterChange: (position: Position) => void;
@@ -22,6 +24,10 @@ export default function MapView(props: Props) {
   const markers = useRef<google.maps.OverlayView[]>([]);
   const [pinIcons, setPinIcons] = useState<{ id: string; category: Category; element: HTMLButtonElement }[]>([]);
   const [zoom, setZoom] = useState(15);
+  const [mapStyle, setMapStyle] = useState<'roadmap' | 'satellite'>(() => {
+    try { return localStorage.getItem('like-cidade-map-style') === 'satellite' ? 'satellite' : 'roadmap'; }
+    catch { return 'roadmap'; }
+  });
   const issueLayer = useMemo(() => createIssueLayer(props.issues, CLUSTERING_ENABLED), [props.issues]);
   const latest = useRef(props); latest.current = props;
   const [state, setState] = useState<'loading' | 'ready' | 'missing-key' | 'error'>('loading');
@@ -34,13 +40,10 @@ export default function MapView(props: Props) {
       const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary;
       if (cancelled || !container.current) return;
       const instance = new Map(container.current, {
-        center: latest.current.center || CENTER, zoom: 15,
+        center: latest.current.center || CENTER, zoom: 15, mapTypeId: mapStyle,
         // Local styles require a raster map without a cloud Map ID.
         renderingType: google.maps.RenderingType.RASTER,
-        styles: [
-          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-          { featureType: 'transit', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-        ],
+        styles: mapStyles(latest.current.theme),
         disableDefaultUI: true, clickableIcons: false, gestureHandling: 'greedy',
       });
       map.current = instance;
@@ -57,6 +60,14 @@ export default function MapView(props: Props) {
     return () => { cancelled = true; listeners.forEach(l => l.remove()); window.removeEventListener('maps-auth-error', onAuthError); markers.current.forEach(m => m.setMap(null)); map.current = null; };
   }, []);
   useEffect(() => { map.current?.panTo(props.center); }, [props.center]);
+  useEffect(() => {
+    if (map.current && state === 'ready') map.current.setOptions({ styles: mapStyles(props.theme) });
+  }, [props.theme, state]);
+  useEffect(() => {
+    if (!map.current || state !== 'ready') return;
+    map.current.setMapTypeId(mapStyle);
+    try { localStorage.setItem('like-cidade-map-style', mapStyle); } catch { /* The map still works without localStorage. */ }
+  }, [mapStyle, state]);
   useEffect(() => {
     if (!map.current || state !== 'ready') return;
     map.current.setOptions({ draggableCursor: props.placing ? 'crosshair' : null });
@@ -108,10 +119,13 @@ export default function MapView(props: Props) {
     </div>}
     {props.userLocation && <div className="map-location-label"><span className="live-dot" />Localização ativada</div>}
     {props.placing && <div className="placing-message"><MousePointer2 size={18} /><span>Toque no mapa para posicionar o relato</span><button aria-label="Cancelar escolha de local" onClick={props.onCancelPlace}><X size={18} /></button></div>}
+    {state === 'ready' && <div className="map-style-switch" role="group" aria-label="Estilo do mapa">
+      <button type="button" aria-label="Mapa de ruas" aria-pressed={mapStyle === 'roadmap'} onClick={() => setMapStyle('roadmap')}><MapIcon size={16} aria-hidden="true" />Ruas</button>
+      <button type="button" aria-label="Mapa de satélite" aria-pressed={mapStyle === 'satellite'} onClick={() => setMapStyle('satellite')}><Satellite size={16} aria-hidden="true" />Satélite</button>
+    </div>}
     <div className="map-controls">
       <button aria-label="Centralizar na minha localização" title="Minha localização" onClick={props.onLocate} disabled={props.locating}><LocateFixed size={20} className={props.locating ? 'animate-pulse' : ''} /></button>
       {state === 'ready' && <div className="zoom-controls"><button aria-label="Aproximar mapa" onClick={() => map.current?.setZoom((map.current.getZoom() ?? 15) + 1)}><Plus size={20} /></button><button aria-label="Afastar mapa" onClick={() => map.current?.setZoom((map.current.getZoom() ?? 15) - 1)}><Minus size={20} /></button></div>}
     </div>
-    <div className="map-legend"><span><i className="bg-coral" />Em aberto</span><span><i className="bg-forest" />Resolvida</span></div>
   </section>;
 }

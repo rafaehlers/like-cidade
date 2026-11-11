@@ -31,17 +31,20 @@ O comando `npm run dev` inicia a API em `127.0.0.1:3001` e o Vite em `localhost:
 2. Habilite também **Geocoding API**, usada para identificar a cidade no centro do mapa. Crie uma chave para uso em navegador. Restrinja a chave às APIs Maps JavaScript e Geocoding e aos sites autorizados, por exemplo `http://localhost:5173/*` e, quando for publicar, o endereço HTTPS escolhido em `rafaellers.cloud`.
 3. Não é necessário Map ID: o mapa usa estilo local para ocultar nomes e ícones de pontos de interesse e transporte, mantendo ruas, seus nomes e a geografia. Os pins dos relatos e a localização usam HTML overlays. A variável antiga `VITE_GOOGLE_MAPS_MAP_ID`, se existir no `.env`, não é utilizada.
 
-Este mockup não usa Places. O nome da cidade na barra superior acompanha o centro do mapa usando geocodificação reversa do Google. A consulta acontece 700 ms após o mapa parar de se mover, não é repetida ao apenas mudar o zoom sem mover o centro, e respostas de posições anteriores são ignoradas. Sem resultado ou em caso de falha, aparece “Região do mapa”. O morador escreve a rua ou referência e a localização do relato vem das coordenadas do pin/GPS. As variáveis com prefixo `VITE_` ficam acessíveis ao navegador após o build; o `.env` não transforma a chave de navegador em segredo. Restrinja seu uso no Google Cloud.
+Este mockup não usa Places. O nome da cidade na barra superior acompanha o centro do mapa usando geocodificação reversa do Google. A consulta acontece 700 ms após o mapa parar de se mover, não é repetida ao apenas mudar o zoom sem mover o centro, e respostas de posições anteriores são ignoradas. Sem resultado ou em caso de falha, aparece “Região do mapa”. A rua do relato também é sugerida pela Geocoding API a partir das coordenadas do pin/GPS, e o morador pode corrigir ou acrescentar uma referência. As variáveis com prefixo `VITE_` ficam acessíveis ao navegador após o build; o `.env` não transforma a chave de navegador em segredo. Restrinja seu uso no Google Cloud.
 
 Documentação: [carregamento](https://developers.google.com/maps/documentation/javascript/load-maps-js-api), [estilo do mapa](https://developers.google.com/maps/documentation/javascript/examples/hiding-features), [overlays](https://developers.google.com/maps/documentation/javascript/customoverlays), [restrições](https://developers.google.com/maps/api-security-best-practices).
 
 ## Como experimentar
 
 - Ao abrir, o navegador pede acesso à localização. Se negar, o mapa começa em Itajaí. O botão de localização permite tentar novamente, respeitando as permissões do navegador.
-- Troque o seletor no topo: **Rafael, Felipe, Gabriel e Sérgio, moradores**, **Marcos, representante do órgão**, ou **Rafael, administrador**. Cada morador tem identidade própria, com apoios e comentários independentes. Não existe login nem verificação real de permissões.
-- Moradores e administrador: clique em **Adicionar relato**, depois no ponto do mapa. Complete título, categoria e foto opcional.
+- Troque o seletor no topo: **Rafael, Felipe, Gabriel, Sérgio e Ricardo, moradores**, **Marcos, representante do órgão**, ou **Admin, administrador**. Cada morador tem identidade própria, com apoios e comentários independentes. Não existe login nem verificação real de permissões.
+- Moradores e administrador: clique em **Reportar algo**, depois no ponto do mapa. Complete título, categoria e foto opcional.
+- A rua é sugerida automaticamente a partir do ponto marcado, do GPS ou das coordenadas ajustadas, usando a Geocoding API já configurada. O campo continua editável. Uma referência digitada não é sobrescrita; nesse caso, é possível aplicar a sugestão explicitamente. Sem resultado ou conexão, o preenchimento manual continua disponível.
 - Sem a chave configurada, o restante do mockup funciona, com localização inicial de Itajaí e ajuste manual de coordenadas no formulário. O mapa não é simulado nem substituído por outro fornecedor.
 - Clique em um relato na lista ou em um pin para abrir detalhes, apoiar e comentar.
+- Use **Ruas / Satélite**, no canto inferior esquerdo do mapa, para alternar a visualização. A escolha é lembrada neste navegador; pins, agrupamentos e registro de relatos funcionam nos dois estilos.
+- O botão de lua/sol na barra superior alterna entre **modo claro e escuro**, incluindo cartões, formulários e o mapa de ruas. A preferência é salva neste navegador e aplicada antes da primeira renderização; sem uma escolha salva, acompanha o tema do sistema. As imagens de satélite mantêm suas cores originais.
 - Representante e administrador podem atualizar a situação. O administrador pode remover relatos.
 - Os filtros e a lista acompanham a área visível do mapa. Os três relatos iniciais são exemplos fictícios, identificados na interface.
 
@@ -93,4 +96,4 @@ O backup usa a API de backup online do SQLite, incluindo as transações do WAL,
 
 ## Assets
 
-O favicon e símbolo do cabeçalho usam a extração do mapa colorido do logo aprovado, com apoio da ferramenta de geração de imagens.
+O favicon e símbolo do cabeçalho usam a extração do mapa colorido do logo aprovado, com apoio da ferramenta de geração de imagens. O PNG possui transparência alpha e o símbolo preenche a área disponível, sem fundo ou moldura branca.

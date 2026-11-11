@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownWideNarrow, ArrowUpRight, Building2, Check, CheckCheck, ChevronDown, CircleHelp, Clock3, Heart, Map as MapIcon, MapPin, MessageCircle, Plus, Search, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X, LoaderCircle, List } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpRight, Building2, Check, CheckCheck, CircleHelp, Clock3, Heart, Map as MapIcon, MapPin, MessageCircle, Plus, Search, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X, LoaderCircle, List, Moon, Sun } from 'lucide-react';
 import { CATEGORIES, CENTER, PEOPLE, STATUSES, authorName, canManage, inBounds, isUserId, type IssueSnapshot, type Issue, type Position, type UserId, type Status } from './domain';
 import { addIssueComment, createSharedIssue, removeSharedIssue, setIssueStatus, setIssueSupport } from './storage';
 import MapView from './components/MapView';
 import Modal from './components/Modal';
 import IssueForm, { type NewIssue } from './components/IssueForm';
 import CategoryIcon from './components/CategoryIcon';
+import ProfileSelector from './components/ProfileSelector';
 import { useMapCity } from './useMapCity';
 import { useSharedIssues } from './useSharedIssues';
+import { useTheme } from './useTheme';
 
 const date = (value: string) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 function StatusBadge({ status }: { status: Status }) { return <span className={`status-badge status-${STATUSES.indexOf(status)}`}><i />{status}</span>; }
 
 export default function App() {
+  const { theme, toggleTheme } = useTheme();
   const [userId, setUserId] = useState<UserId>(() => { try { const value = localStorage.getItem('like-cidade-user') ?? localStorage.getItem('like-cidade-role'); return isUserId(value) ? value : 'resident'; } catch { return 'resident'; } });
   const person = PEOPLE[userId];
   const role = person.type;
@@ -85,21 +88,24 @@ export default function App() {
 
   return <div className="app-shell">
     <header className="app-header">
-      <div className="header-branding"><a href="/" className="brand" aria-label="Like Cidade, início"><img src="/favicon.png" alt="" /><span><b>Like</b> <b>Cidade</b></span></a>
-      <div className="header-divider" /><span className="header-tagline">Quem curte, cuida</span></div>
+      <div className="header-branding"><a href="/" className="brand" aria-label="Like Cidade, início"><img src="/favicon.png?v=2" alt="" /><span><b>Like</b> <b>Cidade</b></span></a>
+      <div className="header-divider" /><span className="header-tagline">Quem curte, cuida!</span></div>
       <div className="header-location" role="status" aria-live="polite" aria-busy={mapCity.loading} aria-label="Cidade no centro do mapa" title={mapCity.loading ? 'Identificando a cidade no centro do mapa…' : mapCity.available ? mapCity.label : 'Não foi possível identificar a cidade. Você pode continuar explorando o mapa.'}>
         {mapCity.loading ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> : <MapPin size={15} aria-hidden="true" />}<span>{mapCity.loading && !mapCity.available ? 'Identificando cidade…' : mapCity.label}</span>
       </div>
       <div className="header-actions">
-        {role !== 'agency' && <button className="button-primary header-report-button" aria-label="Adicionar relato" title="Adicionar relato" onClick={beginReport} disabled={!hydrated || placing || saving}><Plus size={19} /><span>Adicionar relato</span></button>}
+        {role !== 'agency' && <button className="button-primary header-report-button" aria-label="Reportar algo" title="Reportar algo" onClick={beginReport} disabled={!hydrated || placing || saving}><Plus size={19} /><span>Reportar algo</span></button>}
         <button className="help-button" aria-label="Como funciona" onClick={() => setHelp(true)}><CircleHelp size={18} /><span>Como funciona</span></button><span className="demo-label">DEMONSTRAÇÃO</span>
-        <label className="profile-selector"><span className={`avatar avatar-${role}`}>{person.initials}</span><span className="profile-text"><small>{person.role}</small><strong>{person.name}</strong></span><select disabled={saving} aria-label="Perfil da demonstração" value={userId} onChange={e => { if (isUserId(e.target.value)) changeUser(e.target.value); }}>{Object.entries(PEOPLE).map(([id, p]) => <option key={id} value={id}>{p.fullName}</option>)}</select><ChevronDown size={16} /></label>
+        <button type="button" className="theme-toggle" aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} onClick={toggleTheme}>
+          {theme === 'dark' ? <Sun size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}
+        </button>
+        <ProfileSelector value={userId} disabled={saving} onChange={changeUser} />
       </div>
     </header>
     {(loadError || connection === 'reconnecting') && <div className="connection-notice" role="status"><span>{loadError ? 'Sem conexão com o servidor. Seus dados salvos continuam no banco.' : 'Reconectando as atualizações em tempo real…'}</span><button onClick={refresh}>Tentar novamente</button></div>}
     <main className="workspace">
       <aside className={`sidebar ${mobileView === 'list' ? 'mobile-active' : ''}`} aria-label="Lista de ocorrências">
-        <div className="sidebar-intro"><h1>Perto de você<span className="text-coral">.</span></h1><p>Pequenos cuidados.<br />{' '}Uma cidade melhor para todo mundo.</p></div>
+        <div className="sidebar-intro"><h1>Perto de você<span className="text-coral">.</span></h1></div>
         <div className="filter-area"><label className="search-field"><Search size={18} /><input type="search" placeholder="Buscar nos relatos" aria-label="Buscar nos relatos" value={query} onChange={e => setQuery(e.target.value)} /></label><div className="filter-selects"><label><SlidersHorizontal size={14} /><select aria-label="Filtrar categoria" value={category} onChange={e => setCategory(e.target.value)}><option>Todas as categorias</option>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label><label><select aria-label="Filtrar situação" value={status} onChange={e => setStatus(e.target.value)}><option>Todas as situações</option>{STATUSES.map(s => <option key={s}>{s}</option>)}</select></label></div></div>
         <div className="list-heading"><span>{visible.length} {visible.length === 1 ? 'relato' : 'relatos'} {mapReady ? 'nesta área' : 'para explorar'}</span><button onClick={() => setSort(s => s === 'recent' ? 'supported' : 'recent')} title="Trocar ordenação"><ArrowDownWideNarrow size={14} />{sort === 'recent' ? 'Recentes' : 'Mais apoiados'}</button></div>
         <div className="issue-list">
@@ -111,7 +117,7 @@ export default function App() {
         <div className="sidebar-bottom"><span className="flex gap-1.5 items-center"><ShieldCheck size={13} />{loadError ? 'Sem conexão com o servidor' : connection === 'connected' ? 'Atualizações em tempo real' : 'Conectando ao servidor…'}</span><span>Feito para experimentar <Heart size={11} className="text-coral" /></span></div>
       </aside>
       <div className={`map-workspace ${mobileView === 'map' ? 'mobile-active' : ''}`}>
-        <MapView issues={filtered} selectedId={selectedId} center={center} userLocation={userLocation} placing={placing} onSelect={id => setSelectedId(id)} onPick={p => { setPlacing(false); setDraft(p); }} onBounds={setBounds} onCenterChange={setMapCenter} onLocate={() => { void locate(); }} locating={locating} onCancelPlace={() => setPlacing(false)} onReady={setMapReady} />
+        <MapView theme={theme} issues={filtered} selectedId={selectedId} center={center} userLocation={userLocation} placing={placing} onSelect={id => setSelectedId(id)} onPick={p => { setPlacing(false); setDraft(p); }} onBounds={setBounds} onCenterChange={setMapCenter} onLocate={() => { void locate(); }} locating={locating} onCancelPlace={() => setPlacing(false)} onReady={setMapReady} />
       </div>
     </main>
     <nav className="mobile-tabs" aria-label="Visualização"><button aria-pressed={mobileView === 'map'} onClick={() => setMobileView('map')}><MapIcon size={18} />Mapa</button><button aria-pressed={mobileView === 'list'} onClick={() => setMobileView('list')}><List size={18} />Relatos<span>{visible.length}</span></button></nav>
@@ -130,6 +136,6 @@ export default function App() {
       </div></div>
     </Modal>}
     {confirmDelete && <Modal title="Remover este relato?" onClose={() => setConfirmDelete(undefined)}><div className="p-6"><p className="text-muted text-sm leading-relaxed">O relato e suas interações serão removidos da demonstração compartilhada, para todos os participantes.</p><div className="modal-footer"><button className="button-secondary" onClick={() => setConfirmDelete(undefined)}>Cancelar</button><button className="button-primary" disabled={saving} onClick={() => deleteIssue(confirmDelete)}>Remover relato</button></div></div></Modal>}
-    {help && <Modal title="Uma cidade melhor começa com você" onClose={() => setHelp(false)}><div className="help-content"><p>O Like Cidade aproxima quem encontra um problema de quem pode ajudar a resolver.</p><ol><li><MapPin /><div><strong>Encontre e registre</strong><span>Marque um ponto no mapa e conte o que precisa de cuidado. Uma foto ajuda.</span></div></li><li><Heart /><div><strong>Participe da conversa</strong><span>Apoie relatos e acrescente informações para a comunidade.</span></div></li><li><CheckCheck /><div><strong>Acompanhe cada passo</strong><span>Veja as atualizações do representante do órgão e o histórico do atendimento.</span></div></li></ol><div className="demo-explanation"><ShieldCheck size={21} /><p>Esta é uma demonstração sem login. Troque entre Rafael, Felipe, Gabriel e Sérgio, ou explore os perfis de representante e administrador no topo. Os relatos e interações são compartilhados com os participantes desta demonstração e atualizados em tempo real. Não há envio à prefeitura.</p></div><button className="button-primary w-full justify-center" onClick={() => setHelp(false)}>Vamos explorar<ArrowUpRight size={17} /></button></div></Modal>}
+    {help && <Modal title="Uma cidade melhor começa com você" onClose={() => setHelp(false)}><div className="help-content"><p>O Like Cidade aproxima quem encontra um problema de quem pode ajudar a resolver.</p><ol><li><MapPin /><div><strong>Encontre e registre</strong><span>Marque um ponto no mapa e conte o que precisa de cuidado. Uma foto ajuda.</span></div></li><li><Heart /><div><strong>Participe da conversa</strong><span>Apoie relatos e acrescente informações para a comunidade.</span></div></li><li><CheckCheck /><div><strong>Acompanhe cada passo</strong><span>Veja as atualizações do representante do órgão e o histórico do atendimento.</span></div></li></ol><div className="demo-explanation"><ShieldCheck size={21} /><p>Esta é uma demonstração sem login. Troque entre Rafael, Felipe, Gabriel, Sérgio e Ricardo, ou explore os perfis de representante e administrador no topo. Os relatos e interações são compartilhados com os participantes desta demonstração e atualizados em tempo real. Não há envio à prefeitura.</p></div><button className="button-primary w-full justify-center" onClick={() => setHelp(false)}>Vamos explorar<ArrowUpRight size={17} /></button></div></Modal>}
   </div>;
 }

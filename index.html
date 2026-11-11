@@ -4,9 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#f9f9f6" />
+    <script>
+      // Apply the saved theme before the first paint.
+      let theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      try {
+        const saved = localStorage.getItem('like-cidade-theme');
+        if (saved === 'dark' || saved === 'light') theme = saved;
+      } catch { /* Fall back to the system preference. */ }
+      document.documentElement.dataset.theme = theme;
+      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#151b19' : '#f9f9f6';
+    </script>
     <meta name="description" content="Um mapa para cuidar da cidade juntos. Registre, apoie e acompanhe problemas da sua região." />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="256x256" href="/favicon.png?v=2" />
+    <link rel="apple-touch-icon" href="/favicon.png?v=2" />
     <title>Like Cidade — Vamos cuidar da cidade?</title>
   </head>
   <body>
