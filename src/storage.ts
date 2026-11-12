@@ -50,3 +50,7 @@ export const loadCityInfo=(city:import('./cityInfo').CityInfoQuery,signal?:Abort
 export const loadManagement=(userId:UserId,signal?:AbortSignal)=>request<import('./management').ManagementSnapshot>('/management',{headers:viewerHeaders(userId),signal});
 export const saveAssignments=(userId:UserId,value:import('./management').AssignmentUpdate)=>request<IssueSnapshot & {management:import('./management').ManagementSnapshot}>('/management/assignments',{method:'PUT',headers:viewerHeaders(userId),body:JSON.stringify({...value,userId})});
 export const saveServiceEvent=(userId:UserId,id:string,value:import('./management').ServiceUpdate)=>request<IssueSnapshot & {management:import('./management').ManagementSnapshot}>(`/management/issues/${encodeURIComponent(id)}/events`,{method:'POST',headers:viewerHeaders(userId),body:JSON.stringify({...value,userId})});
+
+export const loadPrivacyCapabilities=(signal?:AbortSignal)=>request<import('./legal').PrivacyCapabilities>('/account/privacy',{signal});
+export const exportMyData=()=>request<unknown>('/account/export');
+export const deleteMyAccount=(confirmation:string,acknowledged:boolean)=>request<import('./legal').DeletionReceipt>('/account',{method:'DELETE',body:JSON.stringify({confirmation,acknowledged})});

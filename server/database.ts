@@ -8,6 +8,7 @@ import { ProfileStore } from './profiles.js';
 import type { ProfileUpdate } from '../src/profiles.js';
 import { cityFromReference } from '../src/ranking.js';
 import { ManagementStore } from './management.js';
+import { AccountPrivacyStore } from './account-privacy.js';
 import { automaticPriority, neighborhoodFromReference, type ManagementSnapshot } from '../src/management.js';
 import { demoPhotoCredit } from './demo-photo-credits.js';
 
@@ -20,6 +21,7 @@ export class IssueDatabase {
   readonly db: DatabaseSync;
   readonly profiles: ProfileStore;
   readonly management: ManagementStore;
+  readonly privacy: AccountPrivacyStore;
   constructor(path: string) {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
     this.db = new DatabaseSync(path);
@@ -81,6 +83,7 @@ export class IssueDatabase {
       this.db.exec('COMMIT');
     } catch(error){this.db.exec('ROLLBACK');this.db.close();throw error;}
     this.management=new ManagementStore(this.db,action=>this.write(action));
+    this.privacy=new AccountPrivacyStore(this.db);
   }
 
   get revision() { return Number(this.db.prepare("SELECT value FROM metadata WHERE key = 'revision'").get()!.value); }

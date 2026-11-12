@@ -20,10 +20,11 @@ function text(value: unknown, label: string, min: number, max: number) {
 }
 function id(req: Request) { return String(req.params.id); }
 
-export function createApp({ databasePath, staticDirectory, publicSiteUrl = process.env.PUBLIC_SITE_URL || 'https://likecidade.com.br', cityInfoService = new CityInfoService(), resolveActor = resolveDemoActor }: {
+export function createApp({ databasePath, staticDirectory, publicSiteUrl = process.env.PUBLIC_SITE_URL || 'https://likecidade.com.br', cityInfoService = new CityInfoService(), resolveActor = resolveDemoActor, resolvePrivacySession }: {
   databasePath: string; staticDirectory?: string; publicSiteUrl?:string;
   cityInfoService?:Pick<CityInfoService,'lookup'>;
   resolveActor?: (request: Request, data: Record<string, unknown>) => UserId;
+  resolvePrivacySession?: (request: Request) => { userId: UserId; authenticatedAt: number } | undefined;
 }) {
   const database = new IssueDatabase(databasePath);
   const app = express();
@@ -45,6 +46,37 @@ export function createApp({ databasePath, staticDirectory, publicSiteUrl = proce
     return resolveActor(req,{userId:selected});
   };
   const finish = (req:Request, res: Response, status = 200, extra = {}) => { const snapshot = database.snapshot(viewer(req)); publish(); res.status(status).json({ ...snapshot, ...extra }); };
+
+  const privacySession = (req:Request) => {
+    const session=resolvePrivacySession?.(req);
+    if(!session)throw new RequestError(401,'Entre com uma conta verificada para acessar ou excluir seus dados.');
+    database.profiles.require(session.userId);
+    return session;
+  };
+  app.get('/api/account/privacy',(req,res)=>{
+    const session=resolvePrivacySession?.(req);
+    if(!session){res.json({verified:false,canExport:false,canDelete:false,reason:'Exportação privada e exclusão automática estarão disponíveis após a ativação do login seguro. Você pode solicitar atendimento por e-mail.'});return;}
+    database.profiles.require(session.userId);
+    const recent=Number.isFinite(session.authenticatedAt)&&Date.now()-session.authenticatedAt>=0&&Date.now()-session.authenticatedAt<=10*60*1000;
+    res.json({verified:true,accountId:session.userId,canExport:true,canDelete:recent,reason:recent?undefined:'Confirme seu login novamente para excluir a conta.'});
+  });
+  app.get('/api/account/export',(req,res)=>{
+    const session=privacySession(req);
+    res.set({'Content-Disposition':'attachment; filename="like-cidade-meus-dados.json"','X-Content-Type-Options':'nosniff'}).json(database.privacy.export(session.userId));
+  });
+  app.delete('/api/account',(req,res)=>{
+    const session=privacySession(req);
+    const age=Date.now()-session.authenticatedAt;
+    if(!Number.isFinite(age)||age<0||age>10*60*1000)throw new RequestError(401,'Confirme seu login novamente para excluir a conta.');
+    if(req.get('Sec-Fetch-Site')==='cross-site')throw new RequestError(403,'Abra a exclusão pelo Like Cidade.');
+    const origin=req.get('Origin');
+    const allowed=[new URL(publicSiteUrl).origin,...(process.env.NODE_ENV!=='production'?['http://localhost:5173','http://127.0.0.1:5173']:[])];
+    if(origin&&!allowed.includes(origin))throw new RequestError(403,'Origem de solicitação inválida.');
+    if(!req.is('application/json'))throw new RequestError(415,'Envie a confirmação pelo aplicativo.');
+    const data=body(req);
+    if(Object.keys(data).some(key=>!['confirmation','acknowledged'].includes(key))||data.confirmation!=='EXCLUIR MINHA CONTA'||data.acknowledged!==true)throw new RequestError(400,'Confirme as consequências e digite EXCLUIR MINHA CONTA.');
+    const receipt=database.privacy.erase(session.userId);publish();res.json(receipt);
+  });
 
   app.get('/api/health', (_req, res) => { database.db.prepare('SELECT 1').get(); res.json({ ok: true, storage: 'sqlite' }); });
   app.get('/api/city-info',async(req,res)=>res.json(await cityInfoService.lookup(parseCityQuery(req.query))));

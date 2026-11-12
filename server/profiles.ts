@@ -37,7 +37,7 @@ export class ProfileStore {
     db.exec('BEGIN IMMEDIATE');
     try {
       const at = new Date().toISOString();
-      for (const [id, person] of Object.entries(PEOPLE)) {
+      if (!db.prepare("SELECT value FROM metadata WHERE key='points_initialized'").get()) for (const [id, person] of Object.entries(PEOPLE)) {
         db.prepare('INSERT OR IGNORE INTO profiles (id,nickname,city,role,updated_at) VALUES (?,?,?,?,?)').run(id,person.name,'Itajaí',person.type,at);
         db.prepare("INSERT OR IGNORE INTO user_identities VALUES ('demo',?,?)").run(id,id);
       }
@@ -63,7 +63,7 @@ export class ProfileStore {
     } catch (error) { db.exec('ROLLBACK'); throw error; }
   }
   list(): PublicProfile[] {
-    return this.db.prepare('SELECT id,nickname,city,bio,role,updated_at,avatar_version,avatar IS NOT NULL AS has_avatar FROM profiles ORDER BY rowid').all().map(row => ({
+    return this.db.prepare("SELECT id,nickname,city,bio,role,updated_at,avatar_version,avatar IS NOT NULL AS has_avatar FROM profiles WHERE id!='privacy-removed' ORDER BY rowid").all().map(row => ({
       id: String(row.id), nickname: String(row.nickname), city: row.city as PublicProfile['city'], bio: String(row.bio), role: row.role as PublicProfile['role'], updatedAt: String(row.updated_at),
       avatarUrl: row.has_avatar ? `/api/profiles/${encodeURIComponent(String(row.id))}/avatar?v=${row.avatar_version}` : undefined,
     }));
@@ -73,7 +73,7 @@ export class ProfileStore {
     if (!profile) throw new RequestError(404,'Perfil não encontrado.');
     return profile;
   }
-  name(id: UserId) { return this.require(id).nickname; }
+  name(id: UserId) { return id==='privacy-removed'?'Conta excluída':this.require(id).nickname; }
   update(id: UserId, value: ProfileUpdate, avatar?: Buffer) {
     this.require(id);
     this.db.prepare('UPDATE profiles SET nickname=?,city=?,bio=?,updated_at=? WHERE id=?').run(value.nickname,value.city,value.bio,new Date().toISOString(),id);

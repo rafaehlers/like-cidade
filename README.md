@@ -142,3 +142,8 @@ O ícone ao lado da cidade no mapa abre informações geográficas e populaciona
 ## Graveyard e revisão dos requisitos
 
 O mapa e a lista têm os filtros **Em aberto**, **Todas** e **Graveyard**. Encerradas usam pins com lápide e cinza escuro; atualmente o único status terminal é **Resolvida**. Excluir um relato pela administração continua sendo uma operação distinta. Regras e avaliação de RNF005 (LGPD), RNF006 (HTTPS/Google OAuth), RNF007 (WCAG 2.1 AA) e RNF011 (auditoria) estão em [revisão dos requisitos não funcionais](docs/nonfunctional-requirements.md). O login permanece adiado; os quatro requisitos não foram marcados como integralmente atendidos.
+
+
+## Termos, privacidade e dados da conta
+
+As páginas `/termos`, `/privacidade` e `/cookies` têm acesso pelo rodapé e por **Meu perfil > Privacidade e dados**. O responsável informado é Rafael de Menezes Ehlers, com contato rafaehlers@gmail.com. A área de conta prepara exportação JSON com anexos e exclusão transacional, protegidas por sessão verificada e, para excluir, login recente e confirmação explícita. Como o login Google/WorkOS permanece adiado, os controles automáticos estão bloqueados; o contato por e-mail está disponível. Não use o seletor como verificação de identidade. Veja [privacidade e conta](docs/privacy-and-account.md) para alcance da exclusão, testes, migração SQLite 7 e pendências de backups, provedores e validação jurídica.

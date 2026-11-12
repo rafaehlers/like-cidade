@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Accessibility, ArrowUpRight, Award, Camera, Check, CircleHelp, Eye, Footprints, Heart, History, LoaderCircle, LockKeyhole, MapPin, Pencil, Plus, Trophy } from 'lucide-react';
+import { Accessibility, ArrowUpRight, Award, Camera, Check, CircleHelp, Eye, Footprints, Heart, History, LoaderCircle, LockKeyhole, MapPin, Pencil, Plus, Trophy, ShieldCheck } from 'lucide-react';
 import type { Issue, IssueSnapshot, UserId } from '../domain';
 import { LEVELS, PILOT_CITIES, POINT_RULES, type Achievement, type PilotCity, type ProfileDetails, type ProfileUpdate, type PublicProfile } from '../profiles';
 import { loadProfile, prepareAvatar, saveProfile } from '../storage';
 import { displayPointEntry } from '../presentation';
 import Avatar from './Avatar';
 import Modal from './Modal';
+import AccountPrivacy from './AccountPrivacy';
 
 const date=(value: string)=>new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value));
 const number=(value: number)=>value.toLocaleString('pt-BR');
@@ -52,7 +53,8 @@ export default function UserProfile({id,currentUserId,revision,issues,onClose,on
   const [error,setError]=useState('');
   const [retry,setRetry]=useState(0);
   const [editing,setEditing]=useState(false);
-  const [tab,setTab]=useState<'overview'|'ledger'|'reports'|'rules'>('overview');
+  const [privacyBusy,setPrivacyBusy]=useState(false);
+  const [tab,setTab]=useState<'overview'|'ledger'|'reports'|'rules'|'privacy'>('overview');
   const [filter,setFilter]=useState('all');
   useEffect(()=>{
     const controller=new AbortController();let active=true;setError('');
@@ -64,7 +66,7 @@ export default function UserProfile({id,currentUserId,revision,issues,onClose,on
   const resident=profile?.role==='resident';
   const reports=issues.filter(issue=>issue.authorId===id);
   const ledger=data?.ledger.filter(entry=>filter==='all'||(filter==='credits'?entry.amount>0:entry.amount<0)).map(displayPointEntry) ?? [];
-  return <Modal title={editing?'Editar perfil':own?'Meu perfil':'Perfil público'} onClose={onClose} wide>
+  return <Modal title={editing?'Editar perfil':own?'Meu perfil':'Perfil público'} onClose={()=>{if(!privacyBusy)onClose();}} wide>
     <div className="user-profile">
       {error && <div role="alert" className="profile-notice"><span>{error}</span><button type="button" className="text-button" onClick={()=>setRetry(value=>value+1)}>Tentar novamente</button></div>}
       {!data && !error && <div className="profile-loading"><LoaderCircle className="animate-spin"/>Abrindo perfil…</div>}
@@ -76,9 +78,10 @@ export default function UserProfile({id,currentUserId,revision,issues,onClose,on
           {resident && <div className="profile-ranking-summary"><span>Pontuação por suas contribuições</span><button className="text-button" onClick={onOpenRanking}><Trophy size={14}/>Ver ranking</button></div>}
         </div>
         <nav className="profile-tabs" aria-label="Seções do perfil">{([
-          ['overview','Visão geral',Award],['ledger','Extrato de pontos',History],['reports',own?'Meus relatos':'Relatos',MapPin],['rules','Como pontuar',CircleHelp],
-        ] as const).filter(([key])=>resident || key==='reports' || key==='overview').map(([key,label,Icon])=><button key={key} aria-current={tab===key?'page':undefined} onClick={()=>setTab(key)}><Icon size={16}/>{label}</button>)}</nav>
+          ['overview','Visão geral',Award],['privacy','Privacidade e dados',ShieldCheck],['ledger','Extrato de pontos',History],['reports',own?'Meus relatos':'Relatos',MapPin],['rules','Como pontuar',CircleHelp],
+        ] as const).filter(([key])=>key==='privacy'?own:resident || key==='reports' || key==='overview').map(([key,label,Icon])=><button key={key} disabled={privacyBusy} aria-current={tab===key?'page':undefined} onClick={()=>setTab(key)}><Icon size={16}/>{label}</button>)}</nav>
         <div className="profile-body">
+          {tab==='privacy'&&own&&<AccountPrivacy profileId={id} onBusyChange={setPrivacyBusy}/>}
           {tab==='overview' && <>
             {resident && <><div className="profile-stats"><div><MapPin/><strong>{data.stats.reports}</strong><span>relatos</span></div><div><Heart/><strong>{data.stats.supports}</strong><span>apoios</span></div><div><Check/><strong>{data.stats.conclusions}</strong><span>concluídos</span></div></div>
             <div className="profile-section-heading"><div><h3>Conquistas</h3><p>Cada cuidado conta uma história.</p></div><span>{data.achievements.filter(item=>item.earnedAt).length}/{data.achievements.length}</span></div>
@@ -91,6 +94,7 @@ export default function UserProfile({id,currentUserId,revision,issues,onClose,on
           {tab==='reports' && <><div className="profile-section-heading"><div><h3>{own?'Meus relatos':'Relatos publicados'}</h3><p>{reports.length} {reports.length===1?'ocorrência registrada':'ocorrências registradas'}</p></div></div>{!reports.length?<div className="profile-empty"><MapPin/><h3>Nenhum relato ainda</h3><p>As ocorrências publicadas por este perfil aparecerão aqui.</p></div>:<div className="profile-reports">{reports.map(issue=><button key={issue.id} onClick={()=>onOpenIssue(issue)}>{issue.photo?<img src={issue.photo} alt="" loading="lazy"/>:<span className="report-placeholder"><MapPin/></span>}<span><strong>{issue.title}</strong><small>{issue.category} · {issue.status}</small></span><ArrowUpRight size={16}/></button>)}</div>}</>}
           {tab==='rules' && <><div className="profile-section-heading"><div><h3>Quem curte, cuida. E evolui.</h3><p>Pontos por ações que ajudam a cidade.</p></div></div><ul className="point-rules">{POINT_RULES.map(rule=><li key={rule.action}><span>{rule.label}{!rule.available && <small>Disponível quando o fluxo de validação de soluções estiver implementado</small>}</span><b>+{rule.points}</b></li>)}</ul><h3 className="profile-levels-title">Os níveis da vizinhança</h3><ol className="profile-levels">{LEVELS.map(level=><li key={level.level} className={level.level===data.level.level?'current-level':''}><span>{level.level}</span><strong>{level.title}</strong><small>{number(level.threshold)} pts</small></li>)}</ol><p className="profile-footnote">Cada apoio vale uma vez por ocorrência. Retirar o apoio estorna os 2 pontos; apoiar novamente só repõe esse valor. Não é possível apoiar o próprio relato. Remoções pela administração geram estornos. “Resolvida” ainda não significa conclusão confirmada.</p><p className="profile-footnote">Nesta versão, acessibilidade inclui as subcategorias de rampas de acesso e piso tátil em Calçada. O município do perfil não muda a localização dos relatos.</p></>}
         </div>
+        {own&&tab!=='privacy'&&<div className="profile-privacy-shortcut"><button className="text-button" onClick={()=>setTab('privacy')}><ShieldCheck size={16}/>Privacidade e dados da conta</button></div>}
       </>)}
     </div>
   </Modal>;

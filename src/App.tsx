@@ -4,6 +4,7 @@ import { CATEGORIES, CENTER, PEOPLE, STATUSES, inBounds, isUserId, isClosedStatu
 import { createSharedIssue, removeSharedIssue, setIssueSupport } from './storage';
 import MapView from './components/MapView';
 import Modal from './components/Modal';
+import LegalLinks from './components/LegalLinks';
 import IssueForm, { type NewIssue } from './components/IssueForm';
 import CategoryIcon from './components/CategoryIcon';
 import ProfileSelector from './components/ProfileSelector';
@@ -139,7 +140,7 @@ export default function App() {
             <div className="issue-card-footer"><button className={`like-button ${issue.likes.includes(userId) ? 'is-liked' : ''}`} aria-label={`${issue.likes.includes(userId) ? 'Retirar apoio de' : 'Apoiar'} ${issue.title}`} disabled={saving || issue.authorId===userId || role!=='resident'} title={issue.authorId===userId?'Você não pode apoiar seu próprio relato':undefined} aria-pressed={issue.likes.includes(userId)} onClick={() => like(issue.id)}><Heart size={15} fill={issue.likes.includes(userId) ? 'currentColor' : 'none'} />{issue.likes.length}<span>{issue.likes.length === 1 ? 'apoio' : 'apoios'}</span></button><span className="ml-auto">{date(issue.createdAt)}</span></div>
           </article>)}
         </div>
-        <div className="sidebar-bottom"><span className="flex gap-1.5 items-center"><ShieldCheck size={13} />{loadError ? 'Sem conexão com o servidor' : connection === 'connected' ? 'Atualizações em tempo real' : 'Conectando ao servidor…'}</span></div>
+        <div className="sidebar-bottom"><span className="flex gap-1.5 items-center"><ShieldCheck size={13} />{loadError ? 'Sem conexão com o servidor' : connection === 'connected' ? 'Atualizações em tempo real' : 'Conectando ao servidor…'}</span><LegalLinks /></div>
       </aside>
       <div className={`map-workspace ${mobileView === 'map' ? 'mobile-active' : ''}`}>
         <MapView lifecycle={lifecycle} onLifecycleChange={changeLifecycle} theme={theme} issues={filtered} selectedId={selectedId} center={center} userLocation={userLocation} placing={placing} onSelect={id => setSelectedId(id)} onPick={p => { setPlacing(false); setDraft(p); }} onBounds={setBounds} onCenterChange={setMapCenter} onLocate={() => { void locate(); }} locating={locating} onCancelPlace={() => setPlacing(false)} onReady={setMapReady} />
