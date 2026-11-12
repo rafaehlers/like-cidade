@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { LocateFixed, Map as MapIcon, MapPinned, Plus, Minus, RefreshCw, Satellite, X, MousePointer2 } from 'lucide-react';
-import { CENTER, isClosedStatus, type Category, type Issue, type IssueLifecycle, type Position } from '../domain';
+import { CENTER, isClosedStatus, type Category, type Issue, type Position } from '../domain';
 import { loadMaps } from '../maps';
 import { createMapMarker } from '../mapMarker';
 import CategoryIcon from './CategoryIcon';
@@ -9,7 +9,6 @@ import { createIssueLayer } from '../mapClusters';
 import { mapStyles } from '../mapStyles';
 import type { Theme } from '../useTheme';
 import GraveyardIcon from './GraveyardIcon';
-import IssueLifecycleFilter from './IssueLifecycleFilter';
 
 const CLUSTERING_ENABLED = import.meta.env.VITE_MAP_CLUSTERING_ENABLED?.trim().toLowerCase() !== 'false';
 
@@ -19,7 +18,6 @@ type Props = {
   onBounds: (bounds: google.maps.LatLngBoundsLiteral) => void;
   onCenterChange: (position: Position) => void;
   onLocate: () => void; locating: boolean; onCancelPlace: () => void; onReady: (ready: boolean) => void;
-  lifecycle: IssueLifecycle; onLifecycleChange: (value: IssueLifecycle) => void;
 };
 export default function MapView(props: Props) {
   const container = useRef<HTMLDivElement>(null);
@@ -116,7 +114,6 @@ export default function MapView(props: Props) {
   return <section className="map-panel" aria-label="Mapa de ocorrências">
     {pinIcons.map(pin => createPortal(pin.closed ? <><GraveyardIcon size={pin.count ? 17 : 21} aria-hidden="true" />{pin.count && <span>{pin.count}</span>}</> : pin.category && <CategoryIcon category={pin.category} size={21} />, pin.element, pin.id))}
     <div ref={container} className="absolute inset-0" />
-    <div className="map-lifecycle-filter"><IssueLifecycleFilter value={props.lifecycle} onChange={props.onLifecycleChange} /></div>
     {state !== 'ready' && <div className="map-unavailable">
       <div className="empty-map-icon"><MapPinned size={36} strokeWidth={1.4} /></div>
       <h2>{state === 'loading' ? 'Abrindo o mapa…' : state === 'missing-key' ? 'Vamos colocar a cidade no mapa' : 'Não conseguimos abrir o mapa'}</h2>

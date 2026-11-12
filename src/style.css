@@ -822,20 +822,6 @@
  .city-info-links a { padding:12px;font-size:11px;min-height:44px; }
 }
 
-.lifecycle-filter { display: flex; align-items: stretch; gap: 3px; padding: 4px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-.lifecycle-filter button { display: flex; flex: 1; align-items: center; justify-content: center; gap: 5px; min-height: 40px; padding: 6px; border-radius: 8px; color: var(--text-primary); font-size: 11px; white-space: nowrap; }
-.lifecycle-filter button[aria-pressed="true"] { background: var(--tabs-active); color: var(--accent); font-weight: 650; box-shadow: inset 0 0 0 1px var(--selected-border); }
-.lifecycle-filter .graveyard-filter[aria-pressed="true"] { background: #e9ecef; color: #39434e; box-shadow: inset 0 0 0 1px #697582; }
-[data-theme="dark"] .lifecycle-filter .graveyard-filter[aria-pressed="true"] { background: #323b45; color: #eff2f5; box-shadow: inset 0 0 0 1px #a2adba; }
-.map-lifecycle-filter { display: none; }
-@media (max-width: 760px) {
-  .map-lifecycle-filter { display: block; position: absolute; top: 12px; left: 12px; right: 12px; z-index: 3; }
-  .map-lifecycle-filter .lifecycle-filter { width: fit-content; max-width: 100%; margin: 0 auto; box-shadow: 0 2px 12px #00000018; }
-  .map-lifecycle-filter .lifecycle-filter button { padding-inline: 10px; }
-  .map-lifecycle-filter ~ .map-location-label { top: 72px; }
-  .map-panel .placing-message { top: 72px; }
-}
-
 /* Legal pages and private account controls use readable body text in both themes. */
 .legal-links { display: flex; flex-wrap: wrap; gap: 8px 14px; }
 .legal-links a { color: var(--accent); font-size: 12px; line-height: 1.6; text-decoration: underline; text-underline-offset: 3px; }

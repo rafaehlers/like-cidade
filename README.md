@@ -141,7 +141,7 @@ O ícone ao lado da cidade no mapa abre informações geográficas e populaciona
 
 ## Graveyard e revisão dos requisitos
 
-O mapa e a lista têm os filtros **Em aberto**, **Todas** e **Graveyard**. Encerradas usam pins com lápide e cinza escuro; atualmente o único status terminal é **Resolvida**. Excluir um relato pela administração continua sendo uma operação distinta. Regras e avaliação de RNF005 (LGPD), RNF006 (HTTPS/Google OAuth), RNF007 (WCAG 2.1 AA) e RNF011 (auditoria) estão em [revisão dos requisitos não funcionais](docs/nonfunctional-requirements.md). O login permanece adiado; os quatro requisitos não foram marcados como integralmente atendidos.
+O seletor **Todas as situações** controla o mapa e a lista, reunindo **Em aberto**, **Graveyard (encerradas)** e cada status individual. Encerradas usam pins com lápide e cinza escuro; atualmente o único status terminal é **Resolvida**. Excluir um relato pela administração continua sendo uma operação distinta. Regras e avaliação de RNF005 (LGPD), RNF006 (HTTPS/Google OAuth), RNF007 (WCAG 2.1 AA) e RNF011 (auditoria) estão em [revisão dos requisitos não funcionais](docs/nonfunctional-requirements.md). O login permanece adiado; os quatro requisitos não foram marcados como integralmente atendidos.
 
 
 ## Termos, privacidade e dados da conta

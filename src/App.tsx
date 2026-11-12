@@ -13,7 +13,6 @@ import Ranking from './components/Ranking';
 import ManagementPanel from './components/ManagementPanel';
 import IssueShare from './components/IssueShare';
 import CityInfoModal from './components/CityInfoModal';
-import IssueLifecycleFilter from './components/IssueLifecycleFilter';
 import { useMapCity } from './useMapCity';
 import { useSharedIssues } from './useSharedIssues';
 import { useTheme } from './useTheme';
@@ -39,8 +38,7 @@ export default function App() {
   const mutationPending = useRef(false);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Todas as categorias');
-  const [status, setStatus] = useState('Todas as situações');
-  const [lifecycle, setLifecycle] = useState<IssueLifecycle>('open');
+  const [status, setStatus] = useState<IssueLifecycle | Status>('all');
   const [sort, setSort] = useState<'recent' | 'supported'>('recent');
   const [publishedId,setPublishedId]=useState<string>();
   const [center, setCenter] = useState<Position>(CENTER);
@@ -64,7 +62,7 @@ export default function App() {
   useEffect(()=>{
     if(!selectedId){focusedIssue.current=undefined;setPublishedId(undefined);return;}
     if(!selected || focusedIssue.current===selectedId)return;
-    focusedIssue.current=selectedId;setWorkspaceMode('map');setMobileView('map');setCenter({lat:selected.lat,lng:selected.lng});setQuery('');setCategory('Todas as categorias');setStatus('Todas as situações');setLifecycle(current=>matchesLifecycle(selected.status,current)?current:isClosedStatus(selected.status)?'graveyard':'open');
+    focusedIssue.current=selectedId;setWorkspaceMode('map');setMobileView('map');setCenter({lat:selected.lat,lng:selected.lng});setQuery('');setCategory('Todas as categorias');setStatus('all');
   },[selectedId,selected]);
 
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(''), 5500); return () => clearTimeout(id); }, [toast]);
@@ -76,13 +74,11 @@ export default function App() {
     }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 });
   }), []);
   useEffect(() => { if (workspaceMode==='map' && !didLocate.current) { didLocate.current = true; void locate(); } }, [locate,workspaceMode]);
-  function changeLifecycle(value: IssueLifecycle) { setLifecycle(value); setStatus('Todas as situações'); }
   const filtered = useMemo(() => issues.filter(i =>
-    matchesLifecycle(i.status, lifecycle) &&
     (category === 'Todas as categorias' || i.category === category) &&
-    (status === 'Todas as situações' || i.status === status) &&
+    ((status === 'all' || status === 'open' || status === 'graveyard') ? matchesLifecycle(i.status, status) : i.status === status) &&
     `${i.title} ${i.description ?? ''} ${i.address} ${i.category} ${i.subcategory ?? ''}`.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')),
-  ).sort((a, b) => sort === 'supported' ? b.likes.length - a.likes.length : b.createdAt.localeCompare(a.createdAt)), [issues, category, status, query, sort, lifecycle]);
+  ).sort((a, b) => sort === 'supported' ? b.likes.length - a.likes.length : b.createdAt.localeCompare(a.createdAt)), [issues, category, status, query, sort]);
   const visible = useMemo(() => filtered.filter(i => !mapReady || !bounds || inBounds(i, bounds)), [filtered, mapReady, bounds]);
   function changeUser(next: UserId) { setUserId(next); setWorkspaceMode(next==='admin'?'admin':PEOPLE[next].type==='agency'?'service':'map'); setSelectedId(undefined); setServiceIssueId(undefined); setPlacing(false); setProfileId(undefined); setRankingOpen(false); try { localStorage.setItem('like-cidade-user', next); } catch { /* The demo works without localStorage. */ } setToast(`Agora você está explorando como ${displayName(next,PEOPLE[next].name)} · ${PEOPLE[next].role}.`); }
   function openIssue(issue: Issue) { setSelectedId(issue.id); setCenter({ lat: issue.lat, lng: issue.lng }); }
@@ -100,7 +96,7 @@ export default function App() {
   async function createIssue(value: NewIssue) {
     if (role !== 'resident' && role !== 'admin') return;
     const snapshot = await mutate(() => createSharedIssue(value, userId));
-    setDraft(undefined); setPlacing(false); setLifecycle('open'); setQuery(''); setCategory('Todas as categorias'); setStatus('Todas as situações'); setCenter({ lat: value.lat, lng: value.lng }); setPublishedId(snapshot.createdId); setSelectedId(snapshot.createdId);
+    setDraft(undefined); setPlacing(false); setQuery(''); setCategory('Todas as categorias'); setStatus('all'); setCenter({ lat: value.lat, lng: value.lng }); setPublishedId(snapshot.createdId); setSelectedId(snapshot.createdId);
   }
   function deleteIssue(id: string) {
     if (role !== 'admin') return;
@@ -132,10 +128,10 @@ export default function App() {
     <main className="workspace">
       <aside className={`sidebar ${mobileView === 'list' ? 'mobile-active' : ''}`} aria-label="Lista de ocorrências">
         <div className="sidebar-intro"><h1>Perto de você<span className="text-coral">.</span></h1></div>
-        <div className="filter-area"><IssueLifecycleFilter value={lifecycle} onChange={changeLifecycle} /><label className="search-field"><Search size={18} /><input type="search" placeholder="Buscar nos relatos" aria-label="Buscar nos relatos" value={query} onChange={e => setQuery(e.target.value)} /></label><div className="filter-selects"><label><SlidersHorizontal size={14} /><select aria-label="Filtrar categoria" value={category} onChange={e => setCategory(e.target.value)}><option>Todas as categorias</option>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label><label><select aria-label="Filtrar situação" value={status} onChange={e => setStatus(e.target.value)}><option>Todas as situações</option>{STATUSES.filter(s=>matchesLifecycle(s,lifecycle)).map(s => <option key={s}>{s}</option>)}</select></label></div></div>
+        <div className="filter-area"><label className="search-field"><Search size={18} /><input type="search" placeholder="Buscar nos relatos" aria-label="Buscar nos relatos" value={query} onChange={e => setQuery(e.target.value)} /></label><div className="filter-selects"><label><SlidersHorizontal size={14} /><select aria-label="Filtrar categoria" value={category} onChange={e => setCategory(e.target.value)}><option>Todas as categorias</option>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label><label><select aria-label="Filtrar situação" value={status} onChange={e => setStatus(e.target.value as IssueLifecycle | Status)}><option value="all">Todas as situações</option><option value="open">Em aberto</option><option value="graveyard">Graveyard (encerradas)</option>{STATUSES.map(s => <option key={s}>{s}</option>)}</select></label></div></div>
         <div className="list-heading"><span role="status" aria-live="polite" aria-atomic="true">{visible.length} {visible.length === 1 ? 'relato' : 'relatos'} {mapReady ? 'nesta área' : 'para explorar'}</span><button onClick={() => setSort(s => s === 'recent' ? 'supported' : 'recent')} title="Trocar ordenação"><ArrowDownWideNarrow size={14} />{sort === 'recent' ? 'Recentes' : 'Mais apoiados'}</button></div>
         <div className="issue-list">
-          {!hydrated ? <div className="list-empty"><LoaderCircle size={22} className="animate-spin" /><p>{loadError ? 'Não foi possível abrir os relatos. Tente reconectar acima.' : 'Abrindo os relatos…'}</p></div> : !visible.length ? <div className="list-empty"><MapPin size={28} strokeWidth={1.4} /><h3>{lifecycle==='graveyard'?'Nenhuma ocorrência encerrada por aqui':'Nenhum relato por aqui'}</h3><p>{filtered.length ? 'Mova o mapa para explorar outra área.' : 'Experimente outros filtros ou seja a primeira pessoa a contar o que acontece por aqui.'}</p>{filtered.length > 0 && <button className="text-button" onClick={() => setCenter(CENTER)}>Ver relatos em Itajaí<ArrowUpRight size={14} /></button>}{(query || category !== 'Todas as categorias' || status !== 'Todas as situações' || lifecycle !== 'open') && <button className="text-button" onClick={() => { setQuery(''); setCategory('Todas as categorias'); setStatus('Todas as situações'); setLifecycle('open'); }}>Limpar filtros</button>}</div> : visible.map(issue => <article className={`issue-card ${selectedId === issue.id ? 'issue-card-selected' : ''}`} key={issue.id}>
+          {!hydrated ? <div className="list-empty"><LoaderCircle size={22} className="animate-spin" /><p>{loadError ? 'Não foi possível abrir os relatos. Tente reconectar acima.' : 'Abrindo os relatos…'}</p></div> : !visible.length ? <div className="list-empty"><MapPin size={28} strokeWidth={1.4} /><h3>{status==='graveyard'?'Nenhuma ocorrência encerrada por aqui':'Nenhum relato por aqui'}</h3><p>{filtered.length ? 'Mova o mapa para explorar outra área.' : 'Experimente outros filtros ou seja a primeira pessoa a contar o que acontece por aqui.'}</p>{filtered.length > 0 && <button className="text-button" onClick={() => setCenter(CENTER)}>Ver relatos em Itajaí<ArrowUpRight size={14} /></button>}{(query || category !== 'Todas as categorias' || status !== 'all') && <button className="text-button" onClick={() => { setQuery(''); setCategory('Todas as categorias'); setStatus('all'); }}>Limpar filtros</button>}</div> : visible.map(issue => <article className={`issue-card ${selectedId === issue.id ? 'issue-card-selected' : ''}`} key={issue.id}>
             <button className="issue-card-main" onClick={() => openIssue(issue)}><div className="flex justify-between items-center gap-2 mb-3"><span className={`category-name category-${CATEGORIES.indexOf(issue.category)}`}><CategoryIcon category={issue.category} size={15} />{issue.category}</span><StatusBadge status={issue.status} /></div><div className="flex gap-3"><div className="min-w-0 flex-1"><h2>{issue.title}</h2><p className="issue-address"><MapPin size={12} />{issue.address}</p></div>{issue.photo && <img className="issue-thumbnail" loading="lazy" decoding="async" src={issue.photo} alt="Foto do relato" />}</div></button>
             <div className="issue-card-footer"><button className={`like-button ${issue.likes.includes(userId) ? 'is-liked' : ''}`} aria-label={`${issue.likes.includes(userId) ? 'Retirar apoio de' : 'Apoiar'} ${issue.title}`} disabled={saving || issue.authorId===userId || role!=='resident'} title={issue.authorId===userId?'Você não pode apoiar seu próprio relato':undefined} aria-pressed={issue.likes.includes(userId)} onClick={() => like(issue.id)}><Heart size={15} fill={issue.likes.includes(userId) ? 'currentColor' : 'none'} />{issue.likes.length}<span>{issue.likes.length === 1 ? 'apoio' : 'apoios'}</span></button><span className="ml-auto">{date(issue.createdAt)}</span></div>
           </article>)}
@@ -143,7 +139,7 @@ export default function App() {
         <div className="sidebar-bottom"><span className="flex gap-1.5 items-center"><ShieldCheck size={13} />{loadError ? 'Sem conexão com o servidor' : connection === 'connected' ? 'Atualizações em tempo real' : 'Conectando ao servidor…'}</span><LegalLinks /></div>
       </aside>
       <div className={`map-workspace ${mobileView === 'map' ? 'mobile-active' : ''}`}>
-        <MapView lifecycle={lifecycle} onLifecycleChange={changeLifecycle} theme={theme} issues={filtered} selectedId={selectedId} center={center} userLocation={userLocation} placing={placing} onSelect={id => setSelectedId(id)} onPick={p => { setPlacing(false); setDraft(p); }} onBounds={setBounds} onCenterChange={setMapCenter} onLocate={() => { void locate(); }} locating={locating} onCancelPlace={() => setPlacing(false)} onReady={setMapReady} />
+        <MapView theme={theme} issues={filtered} selectedId={selectedId} center={center} userLocation={userLocation} placing={placing} onSelect={id => setSelectedId(id)} onPick={p => { setPlacing(false); setDraft(p); }} onBounds={setBounds} onCenterChange={setMapCenter} onLocate={() => { void locate(); }} locating={locating} onCancelPlace={() => setPlacing(false)} onReady={setMapReady} />
       </div>
     </main>
     <nav className="mobile-tabs" aria-label="Visualização">

@@ -11,12 +11,13 @@ Revisão em 12/11/2026. Escopo autorizado nesta etapa: implementar o Graveyard e
 
 ## Graveyard
 
-- **Em aberto** é a visualização inicial: Registrada, Em análise e Em andamento.
+- Um único seletor **Todas as situações** controla o mapa e a lista. A visualização inicial inclui todos os status.
+- **Em aberto** reúne Registrada, Em análise e Em andamento.
 - **Graveyard** mostra apenas ocorrências encerradas, tanto no mapa quanto na lista.
-- **Todas** permite comparar pendentes e encerradas no mesmo recorte.
+- **Todas as situações** permite comparar pendentes e encerradas no mesmo recorte. Os quatro status individuais também estão disponíveis no seletor.
 - Nesta versão, somente **Resolvida** representa encerramento. Isso não equivale à confirmação da solução pelo morador; esse fluxo continua pendente.
 - Pins encerrados usam lápide e cinza escuro, inclusive na visualização Todas. Agrupamentos compostos somente de encerradas usam lápide, quantidade e cinza; grupos mistos mostram a quantidade usual.
-- Categoria, busca, situação e limites do mapa continuam combináveis com o filtro. O acesso está disponível no mapa mobile e na lista.
+- Categoria, busca, situação e limites do mapa continuam combináveis com o filtro. No celular, selecione a situação na aba Relatos e volte a Mapa; o filtro é compartilhado.
 - Links diretos e abertura pelo perfil ajustam a visualização para tornar uma ocorrência encerrada localizável. O SSE move ocorrências de um recorte para outro quando seu status muda.
 - Graveyard não exclui dados, não altera status e não recupera registros removidos pela administração. Novos status terminais devem ser definidos primeiro no fluxo de atendimento e incluídos em `isClosedStatus`.
 
