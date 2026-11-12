@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { Position } from './domain';
-import { cityLabel } from './mapCity';
+import { cityIdentity } from './mapCity';
+import type { CityIdentity } from './cityInfo';
 
 export function useMapCity(position: Position | undefined, ready: boolean) {
-  const [city, setCity] = useState({ label: 'Explorando o mapa', loading: false, available: false });
+  const [city, setCity] = useState<{label:string;loading:boolean;available:boolean;identity?:CityIdentity}>({ label: 'Explorando o mapa', loading: false, available: false });
 
   useEffect(() => {
     if (!ready || !position) return;
@@ -15,8 +16,8 @@ export function useMapCity(position: Position | undefined, ready: boolean) {
         const { Geocoder } = await google.maps.importLibrary('geocoding') as google.maps.GeocodingLibrary;
         const { results } = await new Geocoder().geocode({ location: position, language: 'pt-BR' });
         if (!active) return;
-        const label = cityLabel(results);
-        setCity({ label: label ?? 'Região do mapa', loading: false, available: !!label });
+        const identity = cityIdentity(results);
+        setCity({ label: identity?.label ?? 'Região do mapa', loading: false, available: !!identity,identity });
       } catch {
         if (active) setCity({ label: 'Região do mapa', loading: false, available: false });
       }

@@ -45,6 +45,7 @@ export const saveProfile = (id: UserId, value: import('./profiles').ProfileUpdat
 export const prepareAvatar = (file: File) => preparePhoto(file, 320);
 
 export const loadRanking = (params: {period:import('./ranking').RankingPeriod;city:import('./profiles').PilotCity|'all';theme:import('./ranking').RankingTheme;userId:UserId},signal?:AbortSignal)=>request<import('./ranking').RankingSnapshot>(`/ranking?${new URLSearchParams(params)}`,{signal});
+export const loadCityInfo=(city:import('./cityInfo').CityInfoQuery,signal?:AbortSignal)=>request<import('./cityInfo').CityInfo>(`/city-info?${new URLSearchParams({name:city.name,region:city.region,regionCode:city.regionCode,countryCode:city.countryCode})}`,{signal});
 
 export const loadManagement=(userId:UserId,signal?:AbortSignal)=>request<import('./management').ManagementSnapshot>('/management',{headers:viewerHeaders(userId),signal});
 export const saveAssignments=(userId:UserId,value:import('./management').AssignmentUpdate)=>request<IssueSnapshot & {management:import('./management').ManagementSnapshot}>('/management/assignments',{method:'PUT',headers:viewerHeaders(userId),body:JSON.stringify({...value,userId})});

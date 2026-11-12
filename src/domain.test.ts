@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { inBounds, validPosition, canManage, seedIssues, CATEGORIES, SUBCATEGORIES, PEOPLE, isSubcategory, isUserId, toggleSupport, type Role, type UserId } from './domain';
-import { cityLabel } from './mapCity';
+import { cityIdentity, cityLabel } from './mapCity';
 import { createIssueLayer } from './mapClusters';
 import { streetLabel } from './mapAddress';
 
@@ -144,4 +144,15 @@ test('the five residents can support independently without sharing staff permiss
   assert.equal(likes.includes('resident-felipe'), false);
   assert.ok(isUserId('resident')); // Preserve existing stored support and account IDs.
   assert.equal(isUserId('__proto__'), false);
+});
+
+
+test('map city identity keeps municipality, state and country together for city information',()=>{
+  const city=cityIdentity([{address_components:[
+    {long_name:'Canasvieiras',short_name:'Canasvieiras',types:['locality']},
+    {long_name:'Florianópolis',short_name:'Florianópolis',types:['administrative_area_level_2']},
+    {long_name:'Santa Catarina',short_name:'SC',types:['administrative_area_level_1']},
+    {long_name:'Brasil',short_name:'BR',types:['country']},
+  ]}]);
+  assert.deepEqual(city,{name:'Florianópolis',region:'Santa Catarina',regionCode:'SC',country:'Brasil',countryCode:'BR',label:'Florianópolis, Santa Catarina'});
 });

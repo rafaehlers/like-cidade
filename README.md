@@ -135,3 +135,6 @@ Admin pode selecionar cidades com relatos, escolher qualquer usuário e atribuir
 
 
 O compartilhamento está disponível nos detalhes, no CRM e após a publicação, com links diretos e prévias próprias para cada relato. Veja [compartilhamento de relatos](docs/sharing.md) para configuração, campos públicos e validações.
+
+
+O ícone ao lado da cidade no mapa abre informações geográficas e populacionais, com ano de referência e links da Wikipédia. A consulta usa APIs públicas e cache no servidor; veja [informações da cidade](docs/city-info.md).

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownWideNarrow, ArrowUpRight, Building2, Check, CheckCheck, CircleHelp, Clock3, Heart, Map as MapIcon, MapPin, Plus, Search, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X, LoaderCircle, List, Moon, Sun, Trophy, ClipboardList } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpRight, Building2, Check, CheckCheck, CircleHelp, Clock3, Heart, Info, Map as MapIcon, MapPin, Plus, Search, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X, LoaderCircle, List, Moon, Sun, Trophy, ClipboardList } from 'lucide-react';
 import { CATEGORIES, CENTER, PEOPLE, STATUSES, inBounds, isUserId, type IssueSnapshot, type Issue, type Position, type UserId, type Status } from './domain';
 import { createSharedIssue, removeSharedIssue, setIssueSupport } from './storage';
 import MapView from './components/MapView';
@@ -11,6 +11,7 @@ import UserProfile from './components/UserProfile';
 import Ranking from './components/Ranking';
 import ManagementPanel from './components/ManagementPanel';
 import IssueShare from './components/IssueShare';
+import CityInfoModal from './components/CityInfoModal';
 import { useMapCity } from './useMapCity';
 import { useSharedIssues } from './useSharedIssues';
 import { useTheme } from './useTheme';
@@ -49,6 +50,7 @@ export default function App() {
   const [placing, setPlacing] = useState(false);
   const [draft, setDraft] = useState<Position>();
   const [help, setHelp] = useState(false);
+  const [cityInfoOpen,setCityInfoOpen]=useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string>();
   const [toast, setToast] = useState('');
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map');
@@ -106,7 +108,7 @@ export default function App() {
       <div className="header-branding"><a href="/" className="brand" aria-label="Like Cidade, início"><img src="/favicon.png?v=2" alt="" /><span><b>Like</b> <b>Cidade</b></span></a>
       <div className="header-divider" /><span className="header-tagline">Quem curte, cuida!</span></div>
       {activeMode==='map'?<>      <div className="header-location" role="status" aria-live="polite" aria-busy={mapCity.loading} aria-label="Cidade no centro do mapa" title={mapCity.loading ? 'Identificando a cidade no centro do mapa…' : mapCity.available ? mapCity.label : 'Não foi possível identificar a cidade. Você pode continuar explorando o mapa.'}>
-        {mapCity.loading ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> : <MapPin size={15} aria-hidden="true" />}<span>{mapCity.loading && !mapCity.available ? 'Identificando cidade…' : mapCity.label}</span>
+        {mapCity.loading ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> : <MapPin size={15} aria-hidden="true" />}<span>{mapCity.loading && !mapCity.available ? 'Identificando cidade…' : mapCity.label}</span><button type="button" className="city-info-button" aria-label={mapCity.identity?`Informações sobre ${mapCity.identity.name}`:'Informações sobre a cidade'} title="Conhecer a cidade" disabled={mapCity.loading||!mapCity.identity?.countryCode} onClick={()=>setCityInfoOpen(true)}><Info size={16} aria-hidden="true"/></button>
       </div>
 </>:<div className="header-location"><Building2 size={15}/><span>{activeMode==='admin'?'Administração da plataforma':'Central de atendimento'}</span></div>}
       <div className="header-actions">
@@ -146,6 +148,7 @@ export default function App() {
     </nav>
     </>:<ManagementPanel key={`${userId}:${activeMode}`} userId={userId} revision={revision} section={activeMode==='admin'?'admin':'service'} initialIssueId={serviceIssueId} onSnapshot={applySnapshot}/> }
     {toast && <div className="toast" role="status"><Check size={18} /><span>{toast}</span><button aria-label="Fechar aviso" onClick={() => setToast('')}><X size={15} /></button></div>}
+    {cityInfoOpen&&activeMode==='map'&&mapCity.identity&&<CityInfoModal city={mapCity.identity} onClose={()=>setCityInfoOpen(false)}/>}
     {draft && <IssueForm position={draft} onClose={() => setDraft(undefined)} onSave={createIssue} onLocate={locate} locating={locating} />}
     {justPublished && <Modal title="Relato publicado!" onClose={()=>setSelectedId(undefined)}>
       <div className="report-published"><div className="report-published-success"><CheckCheck size={26} aria-hidden="true"/></div><p>Seu relato já pode ser acompanhado por outras pessoas. Compartilhe para dar mais visibilidade.</p><div className="report-published-summary"><CategoryIcon category={selected.category} size={22}/><div><h3>{selected.title}</h3><p>{selected.address}</p></div></div><IssueShare issue={selected}/><div className="modal-footer"><button className="button-secondary" onClick={()=>setSelectedId(undefined)}>Voltar ao mapa</button><button className="button-primary" onClick={()=>setPublishedId(undefined)}>Ver relato<ArrowUpRight size={16}/></button></div></div>

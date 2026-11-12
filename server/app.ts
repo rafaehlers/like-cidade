@@ -8,6 +8,7 @@ import { resolveDemoActor } from './identity.js';
 import { PRIORITIES, type AssignmentUpdate, type ServiceUpdate } from '../src/management.js';
 import { PILOT_CITIES, type PilotCity } from '../src/profiles.js';
 import { renderReportPage } from './sharing.js';
+import { CityInfoService, parseCityQuery } from './city-info.js';
 
 function body(req: Request): Record<string, unknown> {
   if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new RequestError(400, 'Envie os dados em formato JSON.');
@@ -19,8 +20,9 @@ function text(value: unknown, label: string, min: number, max: number) {
 }
 function id(req: Request) { return String(req.params.id); }
 
-export function createApp({ databasePath, staticDirectory, publicSiteUrl = process.env.PUBLIC_SITE_URL || 'https://likecidade.com.br', resolveActor = resolveDemoActor }: {
+export function createApp({ databasePath, staticDirectory, publicSiteUrl = process.env.PUBLIC_SITE_URL || 'https://likecidade.com.br', cityInfoService = new CityInfoService(), resolveActor = resolveDemoActor }: {
   databasePath: string; staticDirectory?: string; publicSiteUrl?:string;
+  cityInfoService?:Pick<CityInfoService,'lookup'>;
   resolveActor?: (request: Request, data: Record<string, unknown>) => UserId;
 }) {
   const database = new IssueDatabase(databasePath);
@@ -45,6 +47,7 @@ export function createApp({ databasePath, staticDirectory, publicSiteUrl = proce
   const finish = (req:Request, res: Response, status = 200, extra = {}) => { const snapshot = database.snapshot(viewer(req)); publish(); res.status(status).json({ ...snapshot, ...extra }); };
 
   app.get('/api/health', (_req, res) => { database.db.prepare('SELECT 1').get(); res.json({ ok: true, storage: 'sqlite' }); });
+  app.get('/api/city-info',async(req,res)=>res.json(await cityInfoService.lookup(parseCityQuery(req.query))));
   app.get('/api/issues', (_req, res) => res.json(database.snapshot(viewer(_req))));
   app.get('/api/management',(req,res)=>res.json(database.managementSnapshot(viewer(req))));
   app.put('/api/management/assignments',(req,res)=>{
