@@ -749,3 +749,35 @@
  .ranking-city-icon svg { width:19px;height:19px; }
  .city-ranking-row .ranking-person strong { font-size:12px;line-height:1.4; }
 }
+
+.issue-share { margin-top:22px;padding-top:18px;border-top:1px solid var(--border); }
+.issue-share h3 { display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600; }
+.issue-share>p { color:var(--text-muted);font-size:11px;line-height:1.7;margin-top:6px; }
+.issue-share-options { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px; }
+.issue-share-options>a,.issue-share-options>button { display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:9px;color:var(--text-primary);background:var(--surface);min-height:40px; }
+.issue-share-options>a:hover,.issue-share-options>button:hover,.issue-share-link>button:hover { border-color:var(--accent);color:var(--accent);background:var(--selected); }
+.issue-share-options>button { grid-column:1/-1; }
+.issue-share-options svg { flex-shrink:0; }
+.issue-share-link { display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-top:10px;background:var(--surface-subtle); }
+.issue-share-link>input { flex:1;min-width:0;width:100%;padding:11px;font-size:10px;color:var(--text-muted);background:transparent;border:0;outline-offset:-3px; }
+.issue-share-link>button { display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;padding:10px 12px;font-size:10px;font-weight:500;border-left:1px solid var(--border);background:var(--surface); }
+.issue-share>.issue-share-feedback { min-height:18px;margin-top:6px;color:var(--accent); }
+.report-published { padding:26px; }
+.report-published-success { width:52px;height:52px;display:grid;place-items:center;border-radius:16px;background:var(--selected);color:var(--accent);margin-bottom:16px; }
+.report-published>p { color:var(--text-muted);font-size:13px;line-height:1.8; }
+.report-published-summary { display:flex;align-items:flex-start;gap:12px;margin-top:20px;padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--surface-subtle); }
+.report-published-summary>svg { flex-shrink:0;color:var(--accent);margin-top:2px; }
+.report-published-summary>div { min-width:0; }
+.report-published-summary h3 { font-size:15px;font-weight:600;line-height:1.5;overflow-wrap:anywhere; }
+.report-published-summary p { font-size:11px;color:var(--text-muted);line-height:1.7;margin-top:5px;overflow-wrap:anywhere; }
+.report-published .modal-footer { padding-top:18px; }
+.shared-report-state { padding:30px;display:flex;align-items:center;flex-direction:column;gap:20px;font-size:13px;text-align:center;color:var(--text-muted);line-height:1.8; }
+@media(max-width:760px) {
+ .report-published { padding:22px 18px; }
+ .issue-share-options>a,.issue-share-options>button,.issue-share-link>button { min-height:44px; }
+ .issue-share-link>button { padding:10px; }
+}
+@media(max-width:360px) {
+ .issue-share-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .issue-share-link>button>span { display:none; }
+}

@@ -132,3 +132,6 @@ A conversa pública foi removida. O comentário opcional do formulário aparece 
 ### Administração e atendimento das prefeituras
 
 Admin pode selecionar cidades com relatos, escolher qualquer usuário e atribuir categorias/órgãos. Responsáveis ganham uma central com lista de pendências, filtros, indicadores, prioridade, histórico e comentários internos. Mudar para **Resolvida** exige foto de evidência; o atendimento respeita cidade e categoria tanto na interface quanto na API. Veja [docs/municipal-management.md](docs/municipal-management.md) para regras, auditoria, preparação para WorkOS e limites do protótipo.
+
+
+O compartilhamento está disponível nos detalhes, no CRM e após a publicação, com links diretos e prévias próprias para cada relato. Veja [compartilhamento de relatos](docs/sharing.md) para configuração, campos públicos e validações.

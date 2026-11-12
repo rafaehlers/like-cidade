@@ -85,6 +85,14 @@ export class IssueDatabase {
 
   get revision() { return Number(this.db.prepare("SELECT value FROM metadata WHERE key = 'revision'").get()!.value); }
 
+  publicReport(id:string) {
+    // Share previews use an explicit public allowlist, regardless of the active viewer.
+    const row=this.db.prepare('SELECT id,title,category,status,address,sample,photo IS NOT NULL AS has_photo FROM issues WHERE id=?').get(id);
+    if(!row)return;
+    return {id:String(row.id),title:String(row.title),category:row.category as Issue['category'],status:row.status as Status,
+      address:row.sample?String(row.address).replace(/ · (localização ilustrativa|exemplo)$/,''):String(row.address),hasPhoto:!!row.has_photo};
+  }
+
   private write(action: () => void | boolean) {
     this.db.exec('BEGIN IMMEDIATE');
     try {

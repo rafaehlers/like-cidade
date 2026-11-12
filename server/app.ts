@@ -1,5 +1,5 @@
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { CATEGORIES, STATUSES, isSubcategory, validPosition, type Category, type Status, type UserId } from '../src/domain.js';
 import { IssueDatabase } from './database.js';
@@ -7,6 +7,7 @@ import { RequestError } from './errors.js';
 import { resolveDemoActor } from './identity.js';
 import { PRIORITIES, type AssignmentUpdate, type ServiceUpdate } from '../src/management.js';
 import { PILOT_CITIES, type PilotCity } from '../src/profiles.js';
+import { renderReportPage } from './sharing.js';
 
 function body(req: Request): Record<string, unknown> {
   if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new RequestError(400, 'Envie os dados em formato JSON.');
@@ -18,8 +19,8 @@ function text(value: unknown, label: string, min: number, max: number) {
 }
 function id(req: Request) { return String(req.params.id); }
 
-export function createApp({ databasePath, staticDirectory, resolveActor = resolveDemoActor }: {
-  databasePath: string; staticDirectory?: string;
+export function createApp({ databasePath, staticDirectory, publicSiteUrl = process.env.PUBLIC_SITE_URL || 'https://likecidade.com.br', resolveActor = resolveDemoActor }: {
+  databasePath: string; staticDirectory?: string; publicSiteUrl?:string;
   resolveActor?: (request: Request, data: Record<string, unknown>) => UserId;
 }) {
   const database = new IssueDatabase(databasePath);
@@ -148,6 +149,11 @@ export function createApp({ databasePath, staticDirectory, resolveActor = resolv
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Endereço não encontrado.' }));
 
   if (staticDirectory && existsSync(resolve(staticDirectory, 'index.html'))) {
+    const pageTemplate=readFileSync(resolve(staticDirectory,'index.html'),'utf8');
+    app.get('/relatos/:id',(req,res)=>{
+      const report=database.publicReport(id(req));
+      res.set('Cache-Control','no-store').status(report?200:404).type('html').send(renderReportPage(pageTemplate,report,publicSiteUrl));
+    });
     app.use(express.static(staticDirectory));
     app.get('/{*path}', (_req, res) => res.sendFile(resolve(staticDirectory, 'index.html')));
   }

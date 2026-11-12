@@ -8,6 +8,7 @@ import { displayIssue } from '../presentation';
 import Avatar from './Avatar';
 import CategoryIcon from './CategoryIcon';
 import PriorityCriteria from './PriorityCriteria';
+import IssueShare from './IssueShare';
 
 const date=(value:string)=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value));
 const day=(value:string)=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
@@ -59,6 +60,7 @@ function ServiceDetail({issue,userId,onSave,onClose,onDraftChange,responsibles}:
     <section className="service-responsibles"><h3>Órgãos e responsáveis</h3>{responsibles.length?responsibles.map((person,index)=><p key={index}><strong>{person.name}</strong><span>{person.department || 'Órgão não informado'}</span></p>):<p className="service-hint">Nenhum responsável atribuído a esta categoria nesta cidade.</p>}</section>
     {issue.photo&&<img className="service-report-photo" src={issue.photo} alt={`Foto do relato: ${issue.title}`}/>}
     {issue.photoCredit&&<p className="photo-credit">Foto: {issue.photoCredit.author} · <a href={issue.photoCredit.sourceUrl} target="_blank" rel="noreferrer">{issue.photoCredit.license}</a></p>}
+    <IssueShare key={issue.id} issue={issue}/>
     <section className="service-private-note"><h3><ShieldCheck size={15}/>Informações do morador</h3><p>{issue.description || 'Nenhum comentário enviado no formulário.'}</p><small>Restrito à administração e aos responsáveis pela categoria.</small></section>
     <form className="service-update-form" onSubmit={submit}>
       <h3>Registrar atendimento</h3><fieldset disabled={saving||preparing}><div className="service-update-selects"><label>Status<select value={status} onChange={event=>{change();setStatus(event.target.value as typeof status);}}>{STATUSES.map(status=><option key={status}>{status}</option>)}</select></label><label>Prioridade<select value={priority} onChange={event=>{change();setPriority(event.target.value as typeof priority);}}><option value="auto">Automática ({issue.priorityOverride?'recalcular':issue.priority})</option>{PRIORITIES.map(priority=><option key={priority}>{priority}</option>)}</select></label></div>

@@ -10,9 +10,11 @@ import ProfileSelector from './components/ProfileSelector';
 import UserProfile from './components/UserProfile';
 import Ranking from './components/Ranking';
 import ManagementPanel from './components/ManagementPanel';
+import IssueShare from './components/IssueShare';
 import { useMapCity } from './useMapCity';
 import { useSharedIssues } from './useSharedIssues';
 import { useTheme } from './useTheme';
+import { useIssueRoute } from './useIssueRoute';
 
 const date = (value: string) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 function StatusBadge({ status }: { status: Status }) { return <span className={`status-badge status-${STATUSES.indexOf(status)}`}><i />{status}</span>; }
@@ -21,9 +23,10 @@ export default function App() {
   const { theme, toggleTheme } = useTheme();
   const [userId, setUserId] = useState<UserId>(() => { try { const value = localStorage.getItem('like-cidade-user') ?? localStorage.getItem('like-cidade-role'); return isUserId(value) ? value : 'resident'; } catch { return 'resident'; } });
   const person = PEOPLE[userId];
+  const {issueId:selectedId,selectIssue:setSelectedId}=useIssueRoute();
   const role = person.type;
   const { issues, profiles, capabilities, revision, hydrated, loadError, connection, applySnapshot, refresh } = useSharedIssues(userId);
-  const [workspaceMode,setWorkspaceMode]=useState<'map'|'admin'|'service'>(()=>userId==='admin'?'admin':PEOPLE[userId]?.type==='agency'?'service':'map');
+  const [workspaceMode,setWorkspaceMode]=useState<'map'|'admin'|'service'>(()=>selectedId?'map':userId==='admin'?'admin':PEOPLE[userId]?.type==='agency'?'service':'map');
   const [serviceIssueId,setServiceIssueId]=useState<string>();
   const activeMode=capabilities.service?workspaceMode:'map';
   const [rankingOpen,setRankingOpen] = useState(false);
@@ -35,7 +38,7 @@ export default function App() {
   const [category, setCategory] = useState('Todas as categorias');
   const [status, setStatus] = useState('Todas as situações');
   const [sort, setSort] = useState<'recent' | 'supported'>('recent');
-  const [selectedId, setSelectedId] = useState<string>();
+  const [publishedId,setPublishedId]=useState<string>();
   const [center, setCenter] = useState<Position>(CENTER);
   const [userLocation, setUserLocation] = useState<Position>();
   const [locating, setLocating] = useState(false);
@@ -49,8 +52,15 @@ export default function App() {
   const [confirmDelete, setConfirmDelete] = useState<string>();
   const [toast, setToast] = useState('');
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map');
-  const didLocate = useRef(false);
+  const didLocate = useRef(!!selectedId);
+  const focusedIssue = useRef<string|undefined>(undefined);
   const selected = issues.find(i => i.id === selectedId);
+  const justPublished=selected&&publishedId===selectedId;
+  useEffect(()=>{
+    if(!selectedId){focusedIssue.current=undefined;setPublishedId(undefined);return;}
+    if(!selected || focusedIssue.current===selectedId)return;
+    focusedIssue.current=selectedId;setWorkspaceMode('map');setMobileView('map');setCenter({lat:selected.lat,lng:selected.lng});setQuery('');setCategory('Todas as categorias');setStatus('Todas as situações');
+  },[selectedId,selected]);
 
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(''), 5500); return () => clearTimeout(id); }, [toast]);
   const locate = useCallback(() => new Promise<Position | undefined>(resolve => {
@@ -83,7 +93,7 @@ export default function App() {
   async function createIssue(value: NewIssue) {
     if (role !== 'resident' && role !== 'admin') return;
     const snapshot = await mutate(() => createSharedIssue(value, userId));
-    setDraft(undefined); setPlacing(false); setQuery(''); setCategory('Todas as categorias'); setStatus('Todas as situações'); setCenter({ lat: value.lat, lng: value.lng }); setSelectedId(snapshot.createdId); setToast('Relato publicado para todos!');
+    setDraft(undefined); setPlacing(false); setQuery(''); setCategory('Todas as categorias'); setStatus('Todas as situações'); setCenter({ lat: value.lat, lng: value.lng }); setPublishedId(snapshot.createdId); setSelectedId(snapshot.createdId);
   }
   function deleteIssue(id: string) {
     if (role !== 'admin') return;
@@ -137,18 +147,23 @@ export default function App() {
     </>:<ManagementPanel key={`${userId}:${activeMode}`} userId={userId} revision={revision} section={activeMode==='admin'?'admin':'service'} initialIssueId={serviceIssueId} onSnapshot={applySnapshot}/> }
     {toast && <div className="toast" role="status"><Check size={18} /><span>{toast}</span><button aria-label="Fechar aviso" onClick={() => setToast('')}><X size={15} /></button></div>}
     {draft && <IssueForm position={draft} onClose={() => setDraft(undefined)} onSave={createIssue} onLocate={locate} locating={locating} />}
-    {selected && <Modal title="Detalhes do relato" onClose={() => setSelectedId(undefined)} wide>
+    {justPublished && <Modal title="Relato publicado!" onClose={()=>setSelectedId(undefined)}>
+      <div className="report-published"><div className="report-published-success"><CheckCheck size={26} aria-hidden="true"/></div><p>Seu relato já pode ser acompanhado por outras pessoas. Compartilhe para dar mais visibilidade.</p><div className="report-published-summary"><CategoryIcon category={selected.category} size={22}/><div><h3>{selected.title}</h3><p>{selected.address}</p></div></div><IssueShare issue={selected}/><div className="modal-footer"><button className="button-secondary" onClick={()=>setSelectedId(undefined)}>Voltar ao mapa</button><button className="button-primary" onClick={()=>setPublishedId(undefined)}>Ver relato<ArrowUpRight size={16}/></button></div></div>
+    </Modal>}
+    {selected && !justPublished && <Modal title="Detalhes do relato" onClose={() => setSelectedId(undefined)} wide>
       <div className="detail-layout"><div className={`detail-visual category-${CATEGORIES.indexOf(selected.category)}`}>
         {selected.photo ? <img src={selected.photo} alt={`Foto: ${selected.title}`} /> : <div><CategoryIcon category={selected.category} size={70} /><span>{selected.category}</span><small>Este relato ainda não tem foto</small></div>}
         <div className="detail-location"><MapPin size={16} /><span>{selected.address}</span></div>
       </div><div className="detail-content"><div className="flex justify-between items-center gap-3"><StatusBadge status={selected.status} /></div><h2>{selected.title}</h2>{selected.subcategory && <p className="detail-subcategory"><CategoryIcon category={selected.category} size={15} /><span>{selected.category} · {selected.subcategory}</span></p>}{selected.photoCredit && <p className="photo-credit">Foto: {selected.photoCredit.author} · <a href={selected.photoCredit.sourceUrl} target="_blank" rel="noreferrer">Fonte</a> · <a href={selected.photoCredit.licenseUrl || selected.photoCredit.sourceUrl} target="_blank" rel="noreferrer">{selected.photoCredit.license}</a></p>}<p className="detail-meta"><UserRound size={13} /><button className="profile-inline-link" onClick={()=>setProfileId(selected.authorId)}>{displayName(selected.authorId, selected.author)}</button><span>·</span>{date(selected.createdAt)}</p>
         <button className={`support-button ${selected.likes.includes(userId) ? 'supported' : ''}`} disabled={saving || selected.authorId===userId || role!=='resident'} aria-pressed={selected.likes.includes(userId)} onClick={() => like(selected.id)}><Heart size={18} fill={selected.likes.includes(userId) ? 'currentColor' : 'none'} />{selected.authorId===userId ? 'Este relato é seu' : selected.likes.includes(userId) ? 'Você apoia este relato' : 'Também quero que resolvam'}<b>{selected.likes.length}</b></button>
         {selected.privateDetailsVisible && <button className="button-secondary service-open-button" onClick={()=>{setServiceIssueId(selected.id);setSelectedId(undefined);setWorkspaceMode('service');}}><Building2 size={16}/>Atender esta ocorrência</button>}
+        <IssueShare key={selected.id} issue={selected}/>
         <section className="detail-section"><h3><Clock3 size={16} />Histórico</h3><ol className="timeline">{selected.history.map((event, i) => <li key={`${event.createdAt}-${i}`}><strong>{event.label}</strong><span>{displayName(event.authorId, event.author)} · {date(event.createdAt)}</span></li>)}</ol></section>
         {selected.privateDetailsVisible && <section className="detail-section private-details"><h3><ShieldCheck size={16}/>Informações para o atendimento</h3><p className="private-details-hint">Visível somente à administração e ao órgão responsável.</p><p className="private-report-text">{selected.description || 'Nenhum comentário enviado no formulário.'}</p>{!!selected.comments?.length && <div className="legacy-private-notes"><h4>Registros anteriores da conversa</h4>{selected.comments.map(comment=><div key={comment.id}><strong>{displayName(comment.authorId,comment.author)} · {date(comment.createdAt)}</strong><p>{comment.text}</p></div>)}</div>}</section>}
         {role === 'admin' && <button className="delete-button" onClick={() => setConfirmDelete(selected.id)}><Trash2 size={15} />Remover relato</button>}
       </div></div>
     </Modal>}
+    {selectedId&&!selected&&!justPublished&&<Modal title={hydrated&&!loadError?'Relato indisponível':'Abrindo relato'} onClose={()=>setSelectedId(undefined)}><div className="shared-report-state">{loadError?<><p>Não foi possível abrir este relato. Confira a conexão e tente novamente.</p><button className="button-primary" onClick={refresh}>Tentar novamente</button></>:hydrated?<><p>Este relato foi removido ou não está mais disponível.</p><button className="button-primary" onClick={()=>setSelectedId(undefined)}>Voltar ao mapa</button></>:<><LoaderCircle className="animate-spin" size={24}/><p>Buscando as informações do relato…</p></>}</div></Modal>}
     {profileId && <UserProfile key={profileId} id={profileId} currentUserId={userId} revision={revision} issues={issues} onClose={()=>setProfileId(undefined)} onSnapshot={applySnapshot} onOpenRanking={()=>{setProfileId(undefined);setRankingOpen(true);}} onOpenIssue={issue=>{setProfileId(undefined);openIssue(issue);}} />}
     {rankingOpen && <Ranking userId={userId} revision={revision} onClose={()=>setRankingOpen(false)} onOpenProfile={id=>{setRankingOpen(false);setProfileId(id);}} />}
     {confirmDelete && <Modal title="Remover este relato?" onClose={() => setConfirmDelete(undefined)}><div className="p-6"><p className="text-muted text-sm leading-relaxed">O relato e suas interações serão removidos para todos os participantes.</p><div className="modal-footer"><button className="button-secondary" onClick={() => setConfirmDelete(undefined)}>Cancelar</button><button className="button-primary" disabled={saving} onClick={() => deleteIssue(confirmDelete)}>Remover relato</button></div></div></Modal>}
