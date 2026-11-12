@@ -7,7 +7,7 @@
     "dev": "concurrently --kill-others-on-fail -n api,web \"npm:dev:api\" \"npm:dev:web\"",
     "build": "tsc -b && vite build && tsc -p tsconfig.server.json",
     "preview": "npm start",
-    "test": "node --import tsx --test src/domain.test.ts server/*.test.ts",
+    "test": "node --import tsx --test src/domain.test.ts src/presentation.test.ts server/*.test.ts",
     "dev:web": "vite --host 0.0.0.0",
     "dev:api": "node --env-file-if-exists=.env --import tsx server/index.ts",
     "start": "node --env-file-if-exists=.env dist-server/server/index.js",

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Issue, IssueSnapshot, UserId } from './domain';
 import type { PublicProfile } from './profiles';
 import { loadIssues } from './storage';
+import { displayIssue } from './presentation';
 
 export function useSharedIssues(userId:UserId) {
   const [capabilities,setCapabilities]=useState({admin:false,service:false});
@@ -18,7 +19,7 @@ export function useSharedIssues(userId:UserId) {
   const applySnapshot = useCallback((snapshot: IssueSnapshot) => {
     if(snapshot.viewerId!==userId || currentUser.current!==userId)return;
     // Older HTTP responses cannot overwrite a more recent SSE-triggered update.
-    if (revision.current.viewerId!==userId || snapshot.revision > revision.current.value) { revision.current = {viewerId:userId,value:snapshot.revision}; setLoadedFor(userId); setCapabilities(snapshot.capabilities ?? {admin:false,service:false}); setIssues(snapshot.issues); setProfiles(snapshot.profiles ?? []); setSnapshotRevision(snapshot.revision); }
+    if (revision.current.viewerId!==userId || snapshot.revision > revision.current.value) { revision.current = {viewerId:userId,value:snapshot.revision}; setLoadedFor(userId); setCapabilities(snapshot.capabilities ?? {admin:false,service:false}); setIssues(snapshot.issues.map(displayIssue)); setProfiles(snapshot.profiles ?? []); setSnapshotRevision(snapshot.revision); }
     setHydrated(true); setLoadError(false);
   }, [userId]);
 

@@ -112,9 +112,8 @@ export default function MapView(props: Props) {
     {state !== 'ready' && <div className="map-unavailable">
       <div className="empty-map-icon"><MapPinned size={36} strokeWidth={1.4} /></div>
       <h2>{state === 'loading' ? 'Abrindo o mapa…' : state === 'missing-key' ? 'Vamos colocar a cidade no mapa' : 'Não conseguimos abrir o mapa'}</h2>
-      <p>{state === 'missing-key' ? 'A conexão com o Google Maps ainda precisa ser configurada. Enquanto isso, explore os relatos de exemplo e teste os perfis.' : state === 'error' ? 'Confira a conexão e a configuração do Google Maps. Seus relatos continuam disponíveis na lista.' : 'Só um instante. Estamos preparando os arredores.'}</p>
+      <p>{state === 'missing-key' ? 'A conexão com o Google Maps ainda precisa ser configurada. Enquanto isso, explore os relatos pela lista.' : state === 'error' ? 'Confira a conexão e a configuração do Google Maps. Seus relatos continuam disponíveis na lista.' : 'Só um instante. Estamos preparando os arredores.'}</p>
       {state !== 'loading' && <button className="button-secondary" onClick={() => window.location.reload()}><RefreshCw size={16} />Tentar novamente</button>}
-      <small>Ambiente de demonstração · exemplos fictícios</small>
     </div>}
     {props.userLocation && <div className="map-location-label"><span className="live-dot" />Localização ativada</div>}
     {props.placing && <div className="placing-message"><MousePointer2 size={18} /><span>Toque no mapa para posicionar o relato</span><button aria-label="Cancelar escolha de local" onClick={props.onCancelPlace}><X size={18} /></button></div>}
