@@ -23,7 +23,7 @@ SQLITE_PATH=./data/like-cidade.sqlite
 
 O comando `npm run dev` inicia a API em `127.0.0.1:3001` e o Vite em `localhost:5173`, com proxy para a API e o fluxo SSE. O front-end tem atualização automática em desenvolvimento; reinicie o comando depois de alterar o servidor ou o `.env`. Não cole a chave no chat. A pasta ou JSON de credenciais de conta de serviço não é necessária e não deve entrar no front-end.
 
-`VITE_MAP_CLUSTERING_ENABLED=true` ativa o agrupamento dos pins próximos ao afastar o mapa (padrão). Use `false` para mostrar sempre os ícones individuais. Cada grupo mostra a quantidade de relatos; clicar aproxima o mapa até separar o grupo. Os agrupamentos respeitam os filtros e ficam verdes quando todos os seus relatos estão resolvidos. A localização do usuário não entra nos grupos. Após alterar o `.env`, reinicie o Vite; para publicação, gere um novo build.
+`VITE_MAP_CLUSTERING_ENABLED=true` ativa o agrupamento dos pins próximos ao afastar o mapa (padrão). Use `false` para mostrar sempre os ícones individuais. Cada grupo mostra a quantidade de relatos; clicar aproxima o mapa até separar o grupo. Os agrupamentos respeitam os filtros e ficam cinza com uma lápide quando todos os seus relatos estão encerrados. A localização do usuário não entra nos grupos. Após alterar o `.env`, reinicie o Vite; para publicação, gere um novo build.
 
 ### Google Cloud
 
@@ -138,3 +138,7 @@ O compartilhamento está disponível nos detalhes, no CRM e após a publicação
 
 
 O ícone ao lado da cidade no mapa abre informações geográficas e populacionais, com ano de referência e links da Wikipédia. A consulta usa APIs públicas e cache no servidor; veja [informações da cidade](docs/city-info.md).
+
+## Graveyard e revisão dos requisitos
+
+O mapa e a lista têm os filtros **Em aberto**, **Todas** e **Graveyard**. Encerradas usam pins com lápide e cinza escuro; atualmente o único status terminal é **Resolvida**. Excluir um relato pela administração continua sendo uma operação distinta. Regras e avaliação de RNF005 (LGPD), RNF006 (HTTPS/Google OAuth), RNF007 (WCAG 2.1 AA) e RNF011 (auditoria) estão em [revisão dos requisitos não funcionais](docs/nonfunctional-requirements.md). O login permanece adiado; os quatro requisitos não foram marcados como integralmente atendidos.

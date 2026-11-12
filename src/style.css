@@ -181,10 +181,10 @@
   .placing-message button { @apply ml-2; }
   .map-pin { @apply rounded-full border-[3px] border-white text-white shadow-lg bg-coral text-lg w-10 h-10 flex items-center justify-center transition-transform; }
   .map-pin:hover { transform: scale(1.12); }
-  .map-pin-resolved { @apply bg-forest; }
+  .map-pin-resolved { background: #525b66; }
   .map-pin-selected { outline: 5px solid #e8423b30; }
   .map-cluster { @apply w-12 h-12 text-base font-bold; box-shadow: 0 0 0 6px #e8423b24, 0 4px 12px #242d2924; }
-  .map-cluster.map-pin-resolved { box-shadow: 0 0 0 6px #277b6024, 0 4px 12px #242d2924; }
+  .map-cluster.map-pin-resolved { gap: 2px; box-shadow: 0 0 0 6px #525b6624, 0 4px 12px #242d2924; }
   .user-location-dot { @apply w-4 h-4 rounded-full border-[3px] border-white bg-blue-500 shadow-md; outline: 9px solid #349ef125; }
   .mobile-tabs { @apply hidden; }
   .toast { @apply fixed bottom-7 left-1/2 -translate-x-1/2 flex items-start gap-3 text-white  rounded-xl shadow-lg text-xs leading-relaxed px-5 py-4 z-50 w-max max-w-[92vw]; background: #242d29; }
@@ -820,4 +820,18 @@
  .city-info-facts dd { font-size:20px; }
  .city-info-facts .city-info-coordinates { font-size:13px; }
  .city-info-links a { padding:12px;font-size:11px;min-height:44px; }
+}
+
+.lifecycle-filter { display: flex; align-items: stretch; gap: 3px; padding: 4px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.lifecycle-filter button { display: flex; flex: 1; align-items: center; justify-content: center; gap: 5px; min-height: 40px; padding: 6px; border-radius: 8px; color: var(--text-primary); font-size: 11px; white-space: nowrap; }
+.lifecycle-filter button[aria-pressed="true"] { background: var(--tabs-active); color: var(--accent); font-weight: 650; box-shadow: inset 0 0 0 1px var(--selected-border); }
+.lifecycle-filter .graveyard-filter[aria-pressed="true"] { background: #e9ecef; color: #39434e; box-shadow: inset 0 0 0 1px #697582; }
+[data-theme="dark"] .lifecycle-filter .graveyard-filter[aria-pressed="true"] { background: #323b45; color: #eff2f5; box-shadow: inset 0 0 0 1px #a2adba; }
+.map-lifecycle-filter { display: none; }
+@media (max-width: 760px) {
+  .map-lifecycle-filter { display: block; position: absolute; top: 12px; left: 12px; right: 12px; z-index: 3; }
+  .map-lifecycle-filter .lifecycle-filter { width: fit-content; max-width: 100%; margin: 0 auto; box-shadow: 0 2px 12px #00000018; }
+  .map-lifecycle-filter .lifecycle-filter button { padding-inline: 10px; }
+  .map-lifecycle-filter ~ .map-location-label { top: 72px; }
+  .map-panel .placing-message { top: 72px; }
 }

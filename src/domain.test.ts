@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { inBounds, validPosition, canManage, seedIssues, CATEGORIES, SUBCATEGORIES, PEOPLE, isSubcategory, isUserId, toggleSupport, type Role, type UserId } from './domain';
+import { inBounds, validPosition, canManage, seedIssues, STATUSES, isClosedStatus, matchesLifecycle, CATEGORIES, SUBCATEGORIES, PEOPLE, isSubcategory, isUserId, toggleSupport, type Role, type UserId } from './domain';
 import { cityIdentity, cityLabel } from './mapCity';
 import { createIssueLayer } from './mapClusters';
 import { streetLabel } from './mapAddress';
@@ -155,4 +155,29 @@ test('map city identity keeps municipality, state and country together for city 
     {long_name:'Brasil',short_name:'BR',types:['country']},
   ]}]);
   assert.deepEqual(city,{name:'Florianópolis',region:'Santa Catarina',regionCode:'SC',country:'Brasil',countryCode:'BR',label:'Florianópolis, Santa Catarina'});
+});
+
+test('graveyard contains only closed reports and open reports remain separate', () => {
+  for (const status of STATUSES) {
+    assert.equal(isClosedStatus(status), status === 'Resolvida');
+    assert.equal(matchesLifecycle(status, 'graveyard'), status === 'Resolvida');
+    assert.equal(matchesLifecycle(status, 'open'), status !== 'Resolvida');
+    assert.equal(matchesLifecycle(status, 'all'), true);
+  }
+});
+
+test('closed clusters are distinguishable from pending or mixed clusters', () => {
+  const closed = { ...seedIssues()[0], status: 'Resolvida' as const };
+  const open = { ...closed, id: 'open', status: 'Em andamento' as const };
+  const closedLayer = createIssueLayer([closed, { ...closed, id: 'closed-2' }], true);
+  const mixedLayer = createIssueLayer([closed, open], true);
+  const closedCluster=closedLayer.atZoom(1)[0].properties;
+  const mixedCluster=mixedLayer.atZoom(1)[0].properties;
+  assert.ok('cluster_id' in closedCluster);
+  assert.ok('cluster_id' in mixedCluster);
+  assert.equal(closedCluster.openCount, 0);
+  assert.equal(mixedCluster.openCount, 1);
+  const single=createIssueLayer([closed], false).atZoom(1)[0].properties;
+  assert.ok('issue' in single);
+  assert.equal(single.issue.status, 'Resolvida');
 });

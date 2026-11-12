@@ -53,6 +53,11 @@ export function isSubcategory(category: Category, value: unknown): value is Subc
   return typeof value === 'string' && SUBCATEGORIES[category].some(option => option === value);
 }
 export const STATUSES: Status[] = ['Registrada', 'Em análise', 'Em andamento', 'Resolvida'];
+export type IssueLifecycle = 'open' | 'all' | 'graveyard';
+export function isClosedStatus(status: Status) { return status === 'Resolvida'; }
+export function matchesLifecycle(status: Status, lifecycle: IssueLifecycle) {
+  return lifecycle === 'all' || (lifecycle === 'graveyard' ? isClosedStatus(status) : !isClosedStatus(status));
+}
 export const PEOPLE: Record<string, { name: string; fullName: string; role: string; type: Role; initials: string }> = {
   resident: { name: 'Rafael', fullName: 'Rafael · Morador', role: 'Morador', type: 'resident', initials: 'RA' },
   'resident-felipe': { name: 'Felipe', fullName: 'Felipe · Morador', role: 'Morador', type: 'resident', initials: 'FE' },
