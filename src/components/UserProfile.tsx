@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Accessibility, ArrowUpRight, Award, Camera, Check, CircleHelp, Eye, Footprints, Heart, History, LoaderCircle, LockKeyhole, MapPin, Pencil, Plus, Trophy } from 'lucide-react';
 import type { Issue, IssueSnapshot, UserId } from '../domain';
-import { PEOPLE } from '../domain';
 import { LEVELS, PILOT_CITIES, POINT_RULES, type Achievement, type PilotCity, type ProfileDetails, type ProfileUpdate, type PublicProfile } from '../profiles';
 import { loadProfile, prepareAvatar, saveProfile } from '../storage';
 import Avatar from './Avatar';
@@ -70,7 +69,7 @@ export default function UserProfile({id,currentUserId,revision,issues,onClose,on
       {!data && !error && <div className="profile-loading"><LoaderCircle className="animate-spin"/>Abrindo perfil…</div>}
       {data && profile && (editing?<EditProfile profile={profile} onCancel={()=>setEditing(false)} onSave={snapshot=>{onSnapshot(snapshot);setEditing(false);setRetry(value=>value+1);}}/>:<>
         <div className="profile-hero">
-          <div className="profile-identity"><Avatar profile={profile} size="large"/><div><p className="profile-eyebrow">{PEOPLE[id]?.role ?? 'Morador'} · Perfil público</p><h2>{profile.nickname}</h2><p className="profile-city"><MapPin size={14}/>{profile.city}</p></div>{own && <button className="button-secondary profile-edit-button" onClick={()=>setEditing(true)} aria-label="Editar perfil"><Pencil size={14}/><span>Editar perfil</span></button>}</div>
+          <div className="profile-identity"><Avatar profile={profile} size="large"/><div><h2>{profile.nickname}</h2><p className="profile-city"><MapPin size={14}/>{profile.city}</p></div>{own && <button className="button-secondary profile-edit-button" onClick={()=>setEditing(true)} aria-label="Editar perfil"><Pencil size={14}/><span>Editar perfil</span></button>}</div>
           {profile.bio && <p className="profile-bio">{profile.bio}</p>}
           {resident ? <div className="level-card"><div className="level-emblem"><Trophy size={26}/></div><div className="level-copy"><span>Nível {data.level.level}</span><h3>{data.level.title}</h3><p>{data.nextLevel ? `${number(Math.max(0,data.nextLevel.threshold-data.total))} pontos para ${data.nextLevel.title}`:'Você alcançou o nível mais alto!'}</p><div className="level-track" role="progressbar" aria-label="Progresso para o próximo nível" aria-valuenow={Math.round(data.progress)} aria-valuemin={0} aria-valuemax={100}><span style={{width:`${data.progress}%`}}/></div></div><div className="profile-points"><strong>{number(data.total)}</strong><span>pontos</span></div></div>:<p className="profile-notice">A pontuação e as conquistas são destinadas aos moradores. Este perfil participa da gestão da demonstração.</p>}
           {resident && <div className="profile-ranking-summary"><span>{data.demoPoints>0?`${number(data.demoPoints)} pts fictícios · ${number(data.actualPoints)} pts por ações reais`:'Pontuação por suas contribuições'}</span><button className="text-button" onClick={onOpenRanking}><Trophy size={14}/>Ver ranking</button></div>}

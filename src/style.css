@@ -159,7 +159,6 @@
   .map-panel { @apply relative h-full overflow-hidden rounded-2xl isolate; background: var(--map-background); }
   .map-unavailable { @apply absolute inset-0 flex flex-col items-center justify-center text-center p-7; background: var(--map-empty); }
   .empty-map-icon { @apply flex items-center justify-center text-forest-text rounded-2xl mb-5; width: 72px; height: 72px; background: var(--map-empty-icon); }
-  .eyebrow { @apply text-[9px] tracking-[.16em] font-semibold mb-3; color: #7b8c6c; }
   .map-unavailable h2 { @apply text-2xl font-semibold tracking-[-.65px] mb-3 max-w-sm; }
   .map-unavailable p { @apply text-xs leading-relaxed max-w-xs text-muted mb-5; }
   .map-unavailable small { @apply text-[9px] text-muted mt-8; }
@@ -362,7 +361,6 @@
   [data-theme="dark"] .avatar-resident { background: #4d3329; color: #f0b698; }
   [data-theme="dark"] .avatar-agency { background: #2a4034; color: #a3d0b5; }
   [data-theme="dark"] .avatar-admin { background: #39314d; color: #cbb6eb; }
-  [data-theme="dark"] .eyebrow { color: #a6be98; }
   [data-theme="dark"] .support-button.supported { color: #ff8a83; border-color: #67403a; background: #3b2725; }
   [data-theme="dark"] .form-error { color: #ffb0aa; background: #442b29; }
   [data-theme="dark"] .delete-button { color: #ff8a83; }
@@ -390,7 +388,6 @@
 .profile-hero { padding: 30px 30px 24px; background: linear-gradient(135deg,var(--selected),var(--surface) 75%); }
 .profile-identity { display: flex; align-items: center; gap: 16px; }
 .profile-identity>div { min-width: 0; flex: 1; }
-.profile-eyebrow { color: var(--text-muted); font-size: 10px; margin-bottom: 4px; letter-spacing: .04em; }
 .profile-identity h2 { font-size: 28px; font-weight: 650; letter-spacing: -.9px; overflow-wrap: anywhere; line-height: 1.2; }
 .profile-city { display: flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 11px; margin-top: 6px; }
 .profile-edit-button { font-size: 11px; padding: 9px 12px; }
@@ -478,7 +475,6 @@
   .profile-identity { gap: 10px; }
   .avatar-large { width: 64px; height: 64px; font-size: 22px; }
   .profile-identity h2 { font-size: 24px; }
-  .profile-eyebrow { font-size: 9px; }
   .profile-edit-button { padding: 9px; }
   .profile-edit-button span { display: none; }
   .level-card { padding: 14px 12px; gap: 10px; }
