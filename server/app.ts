@@ -35,10 +35,15 @@ export function createApp({ databasePath, staticDirectory, resolveActor = resolv
     publishedRevision = revision;
     for (const client of clients) client.write(`event: change\ndata: ${JSON.stringify({ revision })}\n\n`);
   };
-  const finish = (res: Response, status = 200, extra = {}) => { const snapshot = database.snapshot(); publish(); res.status(status).json({ ...snapshot, ...extra }); };
+  const viewer = (req:Request) => {
+    const selected=req.get('X-Demo-User');
+    if(!selected && resolveActor===resolveDemoActor)return undefined;
+    return resolveActor(req,{userId:selected});
+  };
+  const finish = (req:Request, res: Response, status = 200, extra = {}) => { const snapshot = database.snapshot(viewer(req)); publish(); res.status(status).json({ ...snapshot, ...extra }); };
 
   app.get('/api/health', (_req, res) => { database.db.prepare('SELECT 1').get(); res.json({ ok: true, storage: 'sqlite' }); });
-  app.get('/api/issues', (_req, res) => res.json(database.snapshot()));
+  app.get('/api/issues', (_req, res) => res.json(database.snapshot(viewer(_req))));
   app.get('/api/ranking',(req,res)=>{
     if(Object.keys(req.query).some(key=>!['period','theme','city','userId'].includes(key)))throw new RequestError(400,'Filtros de ranking inválidos.');
     const period=req.query.period ?? 'all';const theme=req.query.theme ?? 'all';const city=req.query.city ?? 'all';
@@ -69,7 +74,7 @@ export function createApp({ databasePath, staticDirectory, resolveActor = resolv
       if (avatar.length>512*1024 || avatar.length<4 || avatar[0]!==0xff || avatar[1]!==0xd8 || avatar[2]!==0xff) throw new RequestError(400,'Foto de perfil inválida ou maior que 512 KB.');
     }
     database.updateProfile(userId,{nickname,city:data.city as PilotCity,bio:text(data.bio ?? '', 'Sobre você',0,160),avatar:data.avatar as string | null | undefined},avatar);
-    finish(res);
+    finish(req,res);
   });
   app.get('/api/events', (_req, res) => {
     res.status(200).set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' });
@@ -101,28 +106,26 @@ export function createApp({ databasePath, staticDirectory, resolveActor = resolv
       if (photo.length > 3 * 1024 * 1024 || photo.length < 4 || photo[0] !== 0xff || photo[1] !== 0xd8 || photo[2] !== 0xff) throw new RequestError(400, 'A foto é inválida ou ultrapassa 3 MB após o preparo.');
     }
     const createdId = database.create({ title: text(data.title, 'Título', 5, 100), category, subcategory,
-      description: text(data.description ?? '', 'Descrição', 0, 1200), address: text(data.address ?? 'Local marcado no mapa', 'Referência', 1, 140),
+      description: text(data.description ?? '', 'Comentário para o atendimento', 0, 1200), address: text(data.address ?? 'Local marcado no mapa', 'Referência', 1, 140),
       lat: data.lat, lng: data.lng }, userId, photo);
     res.set('Location', `/api/issues/${createdId}`);
-    finish(res, 201, { createdId });
+    finish(req,res, 201, { createdId });
   });
   app.put('/api/issues/:id/support', (req, res) => {
     const data = body(req); const userId = resolveActor(req,data);
     if (typeof data.supported !== 'boolean') throw new RequestError(400, 'Informe se deseja apoiar o relato.');
-    database.support(id(req), userId, data.supported); finish(res);
+    database.support(id(req), userId, data.supported); finish(req,res);
   });
-  app.post('/api/issues/:id/comments', (req, res) => {
-    const data = body(req); database.comment(id(req), resolveActor(req,data), text(data.text, 'Comentário', 1, 700)); finish(res, 201);
-  });
+  app.post('/api/issues/:id/comments', (_req, _res) => { throw new RequestError(410,'A conversa foi encerrada. Envie as informações para o atendimento no formulário do relato.'); });
   app.patch('/api/issues/:id/status', (req, res) => {
     const data = body(req); const userId = resolveActor(req,data);
     if (!canManage(database.profiles.require(userId).role)) throw new RequestError(403, 'Esse perfil não pode atualizar o atendimento.');
     if (!STATUSES.includes(data.status as Status)) throw new RequestError(400, 'Escolha uma situação válida.');
-    database.status(id(req), userId, data.status as Status); finish(res);
+    database.status(id(req), userId, data.status as Status); finish(req,res);
   });
   app.delete('/api/issues/:id', (req, res) => {
     if (database.profiles.require(resolveActor(req,body(req))).role !== 'admin') throw new RequestError(403, 'Use o perfil de administrador para remover relatos.');
-    database.remove(id(req)); finish(res);
+    database.remove(id(req)); finish(req,res);
   });
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Endereço não encontrado.' }));
 

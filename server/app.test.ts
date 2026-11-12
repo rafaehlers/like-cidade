@@ -47,7 +47,7 @@ async function subscribe(origin: string) {
   };
 }
 
-test('independent users share atomic supports/comments and photos survive a server restart', async t => {
+test('independent users share atomic supports and photos survive a server restart', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'like-cidade-db-'));
   const path = join(directory, 'shared.sqlite');
   let api = await start(path);
@@ -60,7 +60,6 @@ test('independent users share atomic supports/comments and photos survive a serv
   const people = ['resident-felipe', 'resident-gabriel', 'resident-sergio', 'resident-ricardo'];
   const responses = await Promise.all([
     ...people.map(userId => api.request(`/issues/${id}/support`, 'PUT', { userId, supported: true })),
-    ...people.slice(0, 2).map(userId => api.request(`/issues/${id}/comments`, 'POST', { userId, text: `Comentário de ${userId}` })),
   ]);
   assert.ok(responses.every(response => response.ok));
   const firstSupport = await (await api.request(`/issues/${id}/support`, 'PUT', { userId: 'resident-felipe', supported: true })).json() as IssueSnapshot;
@@ -71,8 +70,8 @@ test('independent users share atomic supports/comments and photos survive a serv
   const latest = await (await api.request('/issues')).json() as IssueSnapshot;
   const issue = latest.issues.find(issue => issue.id === id)!;
   assert.deepEqual(issue.likes.sort(), people.sort());
-  assert.equal(issue.comments.length, 2);
-  assert.equal(new Set(issue.comments.map(comment => comment.id)).size, 2);
+  assert.deepEqual(issue.comments, []);
+  assert.equal(issue.description, undefined);
   assert.equal(issue.status, 'Em andamento');
   assert.equal(issue.history.length, 2);
   assert.equal(issue.author, 'Rafael');
@@ -110,7 +109,6 @@ test('SSE notifies two open clients of every change and catches up after reconne
   assert.equal((await second.next()).revision, created.revision);
   for (const [path, method, value] of [
     [`/issues/${created.createdId}/support`, 'PUT', { userId: 'resident-felipe', supported: true }],
-    [`/issues/${created.createdId}/comments`, 'POST', { userId: 'resident-gabriel', text: 'Informação para todos' }],
     [`/issues/${created.createdId}/status`, 'PATCH', { userId: 'agency', status: 'Resolvida' }],
     [`/issues/${created.createdId}`, 'DELETE', { userId: 'admin' }],
   ] as const) {
@@ -138,7 +136,7 @@ test('server validates data, enforces the selected demo role, and rejects stale 
   assert.equal((await api.request('/issues/example-0/support', 'PUT', { userId: 'resident', supported: 'yes' })).status, 400);
   assert.equal((await (await api.request('/issues')).json() as IssueSnapshot).revision, initial.revision);
   assert.equal((await api.request('/issues/example-0', 'DELETE', { userId: 'admin' })).status, 200);
-  assert.equal((await api.request('/issues/example-0/comments', 'POST', { userId: 'resident', text: 'Não pode ressuscitar o relato' })).status, 404);
+  assert.equal((await api.request('/issues/example-0/comments', 'POST', { userId: 'resident', text: 'Não pode ressuscitar o relato' })).status, 410);
   assert.equal((await api.request('/no-such-route')).status, 404);
 });
 

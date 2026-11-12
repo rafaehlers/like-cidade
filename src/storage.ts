@@ -11,12 +11,12 @@ async function request<T = IssueSnapshot>(path: string, options: RequestInit = {
   }
   return response.json();
 }
-export const loadIssues = (signal?: AbortSignal) => request('/issues', { signal });
-export const createSharedIssue = (value: NewIssue, userId: UserId) => request<IssueSnapshot & { createdId: string }>('/issues', { method: 'POST', body: JSON.stringify({ ...value, userId }) });
-export const setIssueSupport = (id: string, userId: UserId, supported: boolean) => request(`/issues/${encodeURIComponent(id)}/support`, { method: 'PUT', body: JSON.stringify({ userId, supported }) });
-export const addIssueComment = (id: string, userId: UserId, text: string) => request(`/issues/${encodeURIComponent(id)}/comments`, { method: 'POST', body: JSON.stringify({ userId, text }) });
-export const setIssueStatus = (id: string, userId: UserId, status: Status) => request(`/issues/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: JSON.stringify({ userId, status }) });
-export const removeSharedIssue = (id: string, userId: UserId) => request(`/issues/${encodeURIComponent(id)}`, { method: 'DELETE', body: JSON.stringify({ userId }) });
+const viewerHeaders = (userId:UserId) => ({'X-Demo-User':userId});
+export const loadIssues = (userId:UserId, signal?: AbortSignal) => request('/issues', { signal, headers:viewerHeaders(userId) });
+export const createSharedIssue = (value: NewIssue, userId: UserId) => request<IssueSnapshot & { createdId: string }>('/issues', { method: 'POST', headers:viewerHeaders(userId), body: JSON.stringify({ ...value, userId }) });
+export const setIssueSupport = (id: string, userId: UserId, supported: boolean) => request(`/issues/${encodeURIComponent(id)}/support`, { method: 'PUT', headers:viewerHeaders(userId), body: JSON.stringify({ userId, supported }) });
+export const setIssueStatus = (id: string, userId: UserId, status: Status) => request(`/issues/${encodeURIComponent(id)}/status`, { method: 'PATCH', headers:viewerHeaders(userId), body: JSON.stringify({ userId, status }) });
+export const removeSharedIssue = (id: string, userId: UserId) => request(`/issues/${encodeURIComponent(id)}`, { method: 'DELETE', headers:viewerHeaders(userId), body: JSON.stringify({ userId }) });
 
 export async function preparePhoto(file: File, maxDimension = 1400): Promise<string> {
   if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) throw new Error('Escolha uma foto JPG, PNG, WebP ou AVIF.');
@@ -42,7 +42,7 @@ export async function preparePhoto(file: File, maxDimension = 1400): Promise<str
 }
 
 export const loadProfile = (id: UserId, signal?: AbortSignal) => request<import('./profiles').ProfileDetails>(`/profiles/${encodeURIComponent(id)}`, { signal });
-export const saveProfile = (id: UserId, value: import('./profiles').ProfileUpdate) => request(`/profiles/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ ...value, userId: id }) });
+export const saveProfile = (id: UserId, value: import('./profiles').ProfileUpdate) => request(`/profiles/${encodeURIComponent(id)}`, { method: 'PATCH', headers:viewerHeaders(id), body: JSON.stringify({ ...value, userId: id }) });
 export const prepareAvatar = (file: File) => preparePhoto(file, 320);
 
 export const loadRanking = (params: {period:import('./ranking').RankingPeriod;city:import('./profiles').PilotCity|'all';theme:import('./ranking').RankingTheme;userId:UserId},signal?:AbortSignal)=>request<import('./ranking').RankingSnapshot>(`/ranking?${new URLSearchParams(params)}`,{signal});

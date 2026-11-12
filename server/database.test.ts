@@ -17,7 +17,7 @@ test('adding optional subcategories migrates an existing database without changi
   store.support(id, 'resident');
   store.comment(id, 'resident-felipe', 'Comentário anterior à atualização');
   store.status(id, 'agency', 'Em andamento');
-  const before = JSON.parse(JSON.stringify(store.snapshot()));
+  const before = JSON.parse(JSON.stringify(store.snapshot('admin')));
   store.close();
 
   // Reproduce the version-1 schema while retaining the populated reports and child tables.
@@ -26,13 +26,13 @@ test('adding optional subcategories migrates an existing database without changi
   legacy.close();
   store = new IssueDatabase(path);
   try {
-    assert.equal(store.db.prepare('PRAGMA user_version').get()!.user_version, 4);
-    assert.deepEqual(JSON.parse(JSON.stringify(store.snapshot())), before);
+    assert.equal(store.db.prepare('PRAGMA user_version').get()!.user_version, 5);
+    assert.deepEqual(JSON.parse(JSON.stringify(store.snapshot('admin'))), before);
     assert.deepEqual(Buffer.from(store.photo(id)!), photo);
-    assert.equal(store.snapshot().issues.find(issue => issue.id === id)!.subcategory, undefined);
+    assert.equal(store.snapshot('admin').issues.find(issue => issue.id === id)!.subcategory, undefined);
     const created = store.create({ ...value, subcategory: 'Piso desnivelado' }, 'resident');
-    assert.equal(store.snapshot().issues.find(issue => issue.id === created)!.subcategory, 'Piso desnivelado');
+    assert.equal(store.snapshot('admin').issues.find(issue => issue.id === created)!.subcategory, 'Piso desnivelado');
     store.close(); store = new IssueDatabase(path);
-    assert.equal(store.snapshot().issues.find(issue => issue.id === created)!.subcategory, 'Piso desnivelado');
+    assert.equal(store.snapshot('admin').issues.find(issue => issue.id === created)!.subcategory, 'Piso desnivelado');
   } finally { store.close(); }
 });

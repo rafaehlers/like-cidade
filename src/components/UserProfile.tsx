@@ -38,7 +38,7 @@ function EditProfile({profile,onCancel,onSave}: {profile: PublicProfile;onCancel
         catch(error){if(mounted.current)setError(error instanceof Error?error.message:'Não foi possível preparar a foto.');}
         finally{if(mounted.current && version===prepareVersion.current)setPreparing(false);}
       }}/>
-      <label>Apelido público<input value={nickname} onChange={event=>setNickname(event.target.value)} required minLength={2} maxLength={30} autoComplete="nickname"/><small>É assim que você aparece nos relatos e comentários. Evite usar seu e-mail.</small></label>
+      <label>Apelido público<input value={nickname} onChange={event=>setNickname(event.target.value)} required minLength={2} maxLength={30} autoComplete="nickname"/><small>É assim que você aparece nos relatos. Evite usar seu e-mail.</small></label>
       <label>Município<select value={city} onChange={event=>setCity(event.target.value as PilotCity)}>{PILOT_CITIES.map(city=><option key={city}>{city}</option>)}</select></label>
       <label>Sobre você <span>(opcional)</span><textarea value={bio} onChange={event=>setBio(event.target.value)} maxLength={160} rows={3} placeholder="O que você gosta de cuidar na sua cidade?"/><small>{bio.length}/160 caracteres · Esta informação é pública.</small></label>
     </fieldset>

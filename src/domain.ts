@@ -5,13 +5,14 @@ export type Category = 'Calçada' | 'Iluminação' | 'Lixo' | 'Buraco' | 'Água 
 export type Subcategory = (typeof SUBCATEGORIES)[Category][number];
 export type Position = { lat: number; lng: number };
 export type NewIssue = Position & { title: string; category: Category; subcategory?: Subcategory; description: string; address: string; photo?: string };
-export type IssueSnapshot = { issues: Issue[]; revision: number; profiles?: import('./profiles.js').PublicProfile[] };
+export type IssueSnapshot = { issues: Issue[]; revision: number; profiles?: import('./profiles.js').PublicProfile[]; viewerId?: UserId };
 export type Comment = { id: string; author: string; authorId?: UserId; text: string; createdAt: string };
 export type Event = { label: string; author: string; authorId?: UserId; createdAt: string };
 export type Issue = Position & {
-  id: string; title: string; category: Category; subcategory?: Subcategory; description: string; address: string;
+  id: string; title: string; category: Category; subcategory?: Subcategory; description?: string; address: string;
+  privateDetailsVisible?: boolean; photoCredit?: {author:string;license:string;sourceUrl:string;licenseUrl:string};
   status: Status; author: string; authorId: UserId; createdAt: string;
-  photo?: string; likes: UserId[]; comments: Comment[]; history: Event[]; sample?: boolean;
+  photo?: string; likes: UserId[]; comments?: Comment[]; history: Event[]; sample?: boolean;
 };
 export const CENTER: Position = { lat: -26.9078, lng: -48.6635 };
 export const CATEGORIES: Category[] = ['Calçada', 'Iluminação', 'Lixo', 'Buraco', 'Água e esgoto', 'Espaço público'];

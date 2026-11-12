@@ -72,7 +72,7 @@ test('legacy contributions are imported once, samples excluded, and ledger survi
   const id=store.create(value,'resident');store.support(id,'resident-felipe',true);
   const issues=JSON.parse(JSON.stringify(store.snapshot().issues));store.close();
   const legacy=new DatabaseSync(path);
-  legacy.exec("DROP TRIGGER immutable_ledger_delete; DROP TRIGGER immutable_ledger_update; DROP TABLE point_locations; DROP TABLE demo_point_ledger; DROP TABLE point_ledger; DROP TABLE user_identities; DROP TABLE profiles; DELETE FROM metadata WHERE key='points_initialized'; PRAGMA user_version=2;");legacy.close();
+  legacy.exec("DROP TRIGGER immutable_ledger_delete; DROP TRIGGER immutable_ledger_update; DROP TABLE agency_scopes; DROP TABLE point_locations; DROP TABLE demo_point_ledger; DROP TABLE point_ledger; DROP TABLE user_identities; DROP TABLE profiles; DELETE FROM metadata WHERE key IN ('points_initialized','agency_scopes_initialized'); PRAGMA user_version=2;");legacy.close();
   store=new IssueDatabase(path);
   const first=store.profiles.details('resident',store.revision);
   assert.equal(first.total,10);assert.match(first.ledger[0].reason,/importado/);

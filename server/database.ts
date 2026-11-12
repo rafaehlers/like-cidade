@@ -2,10 +2,12 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { PEOPLE, seedIssues, type Issue, type Status, type Subcategory, type UserId, type NewIssue } from '../src/domain.js';
+import { CATEGORIES, PEOPLE, seedIssues, type Issue, type Status, type Subcategory, type UserId, type NewIssue } from '../src/domain.js';
 import { RequestError } from './errors.js';
 import { ProfileStore } from './profiles.js';
 import type { ProfileUpdate } from '../src/profiles.js';
+import { cityFromReference } from '../src/ranking.js';
+import { demoPhotoCredit } from './demo-photo-credits.js';
 
 type IssueRow = Omit<Issue, 'author' | 'authorId' | 'createdAt' | 'photo' | 'likes' | 'comments' | 'history' | 'sample' | 'subcategory'> & {
   author_id: UserId; created_at: string; has_photo: number; sample: number; subcategory: Subcategory | null;
@@ -64,6 +66,17 @@ export class IssueDatabase {
       });
     }
     this.profiles = new ProfileStore(this.db);
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      this.db.exec('CREATE TABLE IF NOT EXISTS agency_scopes (user_id TEXT NOT NULL REFERENCES profiles(id), city TEXT NOT NULL, category TEXT NOT NULL, PRIMARY KEY(user_id,city,category))');
+      if(!this.db.prepare("SELECT value FROM metadata WHERE key='agency_scopes_initialized'").get()) {
+        for(const category of CATEGORIES)this.db.prepare('INSERT OR IGNORE INTO agency_scopes VALUES (?,?,?)').run('agency','Itajaí',category);
+        this.db.prepare("INSERT INTO metadata VALUES ('agency_scopes_initialized','1')").run();
+        this.db.prepare("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'").run();
+      }
+      if(Number(this.db.prepare('PRAGMA user_version').get()!.user_version)<5)this.db.exec('PRAGMA user_version=5');
+      this.db.exec('COMMIT');
+    } catch(error){this.db.exec('ROLLBACK');this.db.close();throw error;}
   }
 
   get revision() { return Number(this.db.prepare("SELECT value FROM metadata WHERE key = 'revision'").get()!.value); }
@@ -78,7 +91,7 @@ export class IssueDatabase {
 
   private insertIssue(issue: Issue, photo?: Buffer) {
     this.db.prepare('INSERT INTO issues (id, title, category, description, address, lat, lng, status, author_id, created_at, sample, photo, subcategory) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
-      issue.id, issue.title, issue.category, issue.description, issue.address, issue.lat, issue.lng,
+      issue.id, issue.title, issue.category, issue.description ?? '', issue.address, issue.lat, issue.lng,
       issue.status, issue.authorId, issue.createdAt, issue.sample ? 1 : 0, photo ?? null, issue.subcategory ?? null,
     );
   }
@@ -93,21 +106,25 @@ export class IssueDatabase {
     this.db.prepare('INSERT INTO history VALUES (?, ?, ?, ?, ?, ?)').run(randomUUID(), id, author, userId ?? null, label, at);
   }
 
-  snapshot() {
+  snapshot(viewerId?: UserId) {
+    const viewer = viewerId ? this.profiles.require(viewerId) : undefined;
     // One synchronous connection keeps the revision and all related rows in the same snapshot.
     const rows = this.db.prepare('SELECT id, title, category, subcategory, description, address, lat, lng, status, author_id, created_at, sample, photo IS NOT NULL AS has_photo FROM issues ORDER BY created_at DESC, id').all() as unknown as IssueRow[];
     const likes = this.db.prepare('SELECT issue_id, user_id FROM likes ORDER BY user_id').all() as { issue_id: string; user_id: UserId }[];
     const comments = this.db.prepare('SELECT * FROM comments ORDER BY created_at, rowid').all() as unknown as ChildRow[];
     const history = this.db.prepare('SELECT * FROM history ORDER BY created_at, rowid').all() as unknown as ChildRow[];
-    const issues: Issue[] = rows.map(row => ({
-      id: row.id, title: row.title, category: row.category, subcategory: row.subcategory ?? undefined, description: row.description, address: row.address,
+    const issues: Issue[] = rows.map(row => {
+      const city=cityFromReference(row.address);
+      const allowed=viewer?.role==='admin' || (viewer?.role==='agency' && !!city && !!this.db.prepare('SELECT 1 FROM agency_scopes WHERE user_id=? AND city=? AND category=?').get(viewerId!,city,row.category));
+      return ({
+      id: row.id, title: row.title, category: row.category, subcategory: row.subcategory ?? undefined, description: allowed ? row.description : undefined, privateDetailsVisible: allowed, photoCredit: demoPhotoCredit(row.id), address: row.address,
       lat: row.lat, lng: row.lng, status: row.status, authorId: row.author_id, author: this.profiles.name(row.author_id),
       createdAt: row.created_at, sample: !!row.sample, photo: row.has_photo ? `/api/issues/${encodeURIComponent(row.id)}/photo` : undefined,
       likes: likes.filter(like => like.issue_id === row.id).map(like => like.user_id),
-      comments: comments.filter(comment => comment.issue_id === row.id).map(comment => ({ id: comment.id, authorId: comment.author_id, author: this.profiles.name(comment.author_id), text: comment.text, createdAt: comment.created_at })),
+      comments: allowed ? comments.filter(comment => comment.issue_id === row.id).map(comment => ({ id: comment.id, authorId: comment.author_id, author: this.profiles.name(comment.author_id), text: comment.text, createdAt: comment.created_at })) : [],
       history: history.filter(event => event.issue_id === row.id).map(event => ({ author: event.author, authorId: event.author_id || undefined, label: event.label, createdAt: event.created_at })),
-    }));
-    return { issues, revision: this.revision, profiles: this.profiles.list() };
+    }); });
+    return { viewerId, issues, revision: this.revision, profiles: this.profiles.list() };
   }
 
   create(value: NewIssue, userId: UserId, photo?: Buffer) {

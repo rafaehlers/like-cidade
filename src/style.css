@@ -267,12 +267,6 @@
   .timeline li:before { content: ''; @apply absolute w-2 h-2 rounded-full bg-forest; top: 4px; left: -20.5px; }
   .timeline strong { @apply block font-medium; }
   .timeline span { @apply text-[10px] text-muted block mt-1; }
-  .comments>div { @apply mb-4 text-xs; }
-  .comments strong { @apply font-semibold flex justify-between gap-2 mb-1; }
-  .comments strong span { @apply text-[9px] text-muted font-normal; }
-  .comments p { @apply text-muted leading-relaxed whitespace-pre-wrap break-words; }
-  .comment-form { @apply flex flex-col items-end gap-2; }
-  .comment-form textarea { @apply w-full text-xs border border-stone-200 rounded-lg p-3; }
   .delete-button { @apply text-xs text-red-600 flex items-center gap-2 mt-6 hover:underline; }
   .help-content { @apply p-6 space-y-5 text-sm text-muted leading-relaxed; }
   .help-content ol { @apply space-y-5; }
@@ -568,3 +562,15 @@
   .ranking-row>svg { display: none; }
   .profile-ranking-summary { align-items: flex-start; line-height: 1.5; font-size: 10px; }
 }
+
+.private-comment-hint { color: var(--accent); font-size: 11px; line-height: 1.6; font-weight: 400; }
+.demo-privacy-notice { font-size: 11px; line-height: 1.7; color: var(--text-muted); padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-subtle); }
+.private-details-hint { font-size: 11px; color: var(--accent); line-height: 1.6; margin: -5px 0 12px; }
+.private-report-text { font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.legacy-private-notes { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 15px; }
+.legacy-private-notes h4 { font-size: 11px; color: var(--text-muted); margin-bottom: 14px; }
+.legacy-private-notes>div { margin: 12px 0; }
+.legacy-private-notes strong { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+.legacy-private-notes p { font-size: 12px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 5px; }
+.photo-credit { font-size: 10px; color: var(--text-muted); line-height: 1.7; margin: -8px 0 16px; }
+.photo-credit a { color: var(--accent); text-decoration: underline; }

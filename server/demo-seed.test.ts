@@ -34,21 +34,21 @@ test('demo import preserves existing records and reruns do not reset edits or du
   const realId = store.create({ title: 'Relato criado por um morador', category: 'Calçada', lat: -26.9078, lng: -48.6635, address: 'Local do teste', description: 'Preservar este registro' }, 'resident-ricardo');
   store.support(realId, 'resident');
   store.comment(realId, 'resident-felipe', 'Preservar este comentário');
-  const before = store.snapshot().issues.find(issue => issue.id === realId);
+  const before = store.snapshot('admin').issues.find(issue => issue.id === realId);
   store.close();
 
   const first = seedDemoReports(path);
   assert.equal(first.inserted, 60);
   assert.deepEqual(Object.values(first.byCity), [20, 20, 20]);
   store = new IssueDatabase(path);
-  assert.equal(store.snapshot().issues.length, 64);
-  assert.deepEqual(store.snapshot().issues.find(issue => issue.id === realId), before);
-  const demo = store.snapshot().issues.find(issue => issue.id === 'demo-city-v1-bc-01')!;
+  assert.equal(store.snapshot('admin').issues.length, 64);
+  assert.deepEqual(store.snapshot('admin').issues.find(issue => issue.id === realId), before);
+  const demo = store.snapshot('admin').issues.find(issue => issue.id === 'demo-city-v1-bc-01')!;
   assert.equal(demo.sample, true);
   assert.ok(store.photo(demo.id)!.length > 1000);
   store.status(demo.id, 'agency', 'Resolvida');
   store.comment(demo.id, 'resident-ricardo', 'Alteração feita durante os testes');
-  const changed = store.snapshot().issues.find(issue => issue.id === demo.id);
+  const changed = store.snapshot('admin').issues.find(issue => issue.id === demo.id);
   const revision = store.revision;
   store.close();
 
@@ -57,9 +57,9 @@ test('demo import preserves existing records and reruns do not reset edits or du
   assert.equal(second.skipped, 60);
   assert.equal(second.revision, revision);
   store = new IssueDatabase(path);
-  assert.deepEqual(store.snapshot().issues.find(issue => issue.id === demo.id), changed);
-  assert.deepEqual(store.snapshot().issues.find(issue => issue.id === realId), before);
-  assert.equal(store.snapshot().issues.length, 64);
+  assert.deepEqual(store.snapshot('admin').issues.find(issue => issue.id === demo.id), changed);
+  assert.deepEqual(store.snapshot('admin').issues.find(issue => issue.id === realId), before);
+  assert.equal(store.snapshot('admin').issues.length, 64);
   store.close();
 });
 
@@ -68,10 +68,10 @@ test('an invalid dataset does not modify an existing database', async t => {
   t.after(() => rm(directory, { recursive: true, force: true }));
   const path = join(directory, 'demo.sqlite');
   let store = new IssueDatabase(path);
-  const before = store.snapshot();
+  const before = store.snapshot('admin');
   store.close();
   assert.throws(() => seedDemoReports(path, resolve(directory, 'missing-assets')));
   store = new IssueDatabase(path);
-  assert.deepEqual(store.snapshot(), before);
+  assert.deepEqual(store.snapshot('admin'), before);
   store.close();
 });
