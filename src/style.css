@@ -735,3 +735,17 @@
  .priority-criteria-content th,.priority-criteria-content td { padding:10px;overflow-wrap:anywhere; }
  .priority-criteria-content tbody th { width:90px; }
 }
+
+.ranking-tabs { display:flex;gap:4px;padding:4px;background:var(--surface-subtle);border:1px solid var(--border);border-radius:11px;margin-bottom:24px; }
+.ranking-tabs button { display:flex;align-items:center;justify-content:center;gap:8px;flex:1;padding:11px 14px;border-radius:8px;font-size:12px;color:var(--text-muted); }
+.ranking-tabs button[aria-selected=true] { color:var(--accent);background:var(--surface);box-shadow:0 1px 4px #00000010;font-weight:600; }
+.ranking-tabs button:focus-visible,.ranking-page [role=tabpanel]:focus-visible { outline:2px solid var(--accent);outline-offset:3px; }
+.ranking-selects.ranking-selects-cities { grid-template-columns:minmax(0,1fr); }
+.ranking-city-icon { display:grid;place-items:center;width:42px;height:42px;border-radius:12px;color:var(--accent);background:var(--selected);flex-shrink:0; }
+@media(max-width:760px) {
+ .ranking-tabs { margin-bottom:22px; }
+ .ranking-tabs button { padding:10px 8px;font-size:12px; }
+ .ranking-city-icon { width:32px;height:36px;border-radius:9px; }
+ .ranking-city-icon svg { width:19px;height:19px; }
+ .city-ranking-row .ranking-person strong { font-size:12px;line-height:1.4; }
+}

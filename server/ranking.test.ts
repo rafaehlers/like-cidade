@@ -30,7 +30,36 @@ test('top 10 has stable ties, excludes staff, and shows the current resident out
   assert.equal(result.rows.length,10);assert.equal(result.participants,13);
   assert.equal(result.own!.position,13);assert.equal(result.rows.some(row=>row.profile.id==='resident-12'),false);
   assert.equal(result.rows[0].position,1);assert.equal(result.rows[1].position,1);assert.equal(result.rows[2].position,3);
+  assert.equal(result.cityRows[0].participants,13);
+  assert.equal(result.cityRows[0].points,events.filter(entry=>entry.userId.startsWith('resident-')).reduce((sum,entry)=>sum+entry.amount,0));
   assert.deepEqual(result.rows.map(row=>row.profile.id),buildRanking([...profiles].reverse(),[...events].reverse(),options).rows.map(row=>row.profile.id));
+});
+test('city totals use contribution locations, unique residents and reversals with stable ties',()=>{
+  const profiles=[profile('a'),profile('b'),profile('staff','agency'),profile('admin','admin')];
+  const entries=[event('a',20),event('b',10),event('a',-10),event('a',20,now.toISOString(),'Itajaí'),event('b',5,now.toISOString(),'Balneário Camboriú'),
+    event('staff',500),event('admin',500),event('unknown',500),{...event('a',100),city:undefined},event('a',500,'2026-11-12T00:00:00Z')];
+  const ranking=buildRanking(profiles,entries,options);
+  assert.deepEqual(ranking.cityRows,[
+    {city:'Itajaí',points:20,participants:1,position:1},
+    {city:'Navegantes',points:20,participants:2,position:1},
+    {city:'Balneário Camboriú',points:5,participants:1,position:3},
+  ]);
+  assert.equal(ranking.rows.reduce((sum,row)=>sum+row.points,0),145);
+  assert.deepEqual(buildRanking([...profiles].reverse(),[...entries].reverse(),options).cityRows,ranking.cityRows);
+});
+test('city ranking respects Brasília periods, themes and empty results',()=>{
+  const profiles=[profile('a')];
+  const entries=[event('a',50,'2026-11-09T02:59:59Z'),
+    {...event('a',10,'2026-11-09T03:00:00Z'),subcategory:'Piso tátil ausente' as const},
+    event('a',20,'2026-11-01T03:00:00Z','Itajaí'),
+    {...event('a',2,now.toISOString(),'Itajaí'),action:'support' as const},
+    event('a',500,'2026-11-12T00:00:00Z')];
+  assert.deepEqual(buildRanking(profiles,entries,{...options,period:'week'}).cityRows.map(row=>[row.city,row.points]),[['Navegantes',10],['Itajaí',2]]);
+  assert.deepEqual(buildRanking(profiles,entries,{...options,period:'month'}).cityRows.map(row=>[row.city,row.points]),[['Navegantes',60],['Itajaí',22]]);
+  assert.deepEqual(buildRanking(profiles,entries,{...options,theme:'supports'}).cityRows.map(row=>[row.city,row.points]),[['Itajaí',2]]);
+  assert.deepEqual(buildRanking(profiles,entries,{...options,theme:'accessibility'}).cityRows.map(row=>[row.city,row.points]),[['Navegantes',10]]);
+  assert.deepEqual(buildRanking(profiles,entries,{...options,city:'Itajaí'}).cityRows.map(row=>[row.city,row.points]),[['Itajaí',22]]);
+  assert.deepEqual(buildRanking(profiles,[],options).cityRows,[]);
 });
 test('city and thematic ranking use contribution metadata, not the resident home city',()=>{
   const profiles=[profile('a'),profile('b')];const entries=[event('a',10),event('b',50,now.toISOString(),'Itajaí'),{...event('a',2),action:'support' as const},{...event('a',10),subcategory:'Piso tátil ausente' as const}];
@@ -57,6 +86,7 @@ test('fictional rankings seed every current resident once, preserve real data, a
       const details=store.profiles.details(row.profile.id,store.revision);
       assert.equal(row.points,details.total);assert.ok(details.demoPoints>0);assert.equal(details.total,details.actualPoints+details.demoPoints);assert.ok(details.ledger.some(entry=>entry.demo));
     }
+    assert.equal(ranking.cityRows.reduce((sum,row)=>sum+row.points,0),ranking.rows.reduce((sum,row)=>sum+row.points,0));
     assert.equal(store.profiles.details('resident',store.revision).actualPoints,10);
     assert.equal(store.profiles.details('resident-felipe',store.revision).actualPoints,2);
     store.remove(id);
@@ -69,5 +99,15 @@ test('fictional rankings seed every current resident once, preserve real data, a
 test('ranking API validates filters and exposes no private identity fields',async t=>{
   const resource=createApp({databasePath:':memory:'});const server=resource.app.listen(0,'127.0.0.1');await once(server,'listening');t.after(()=>{resource.close();server.closeAllConnections();server.close();});const address=server.address();assert.ok(address && typeof address!=='string');const origin=`http://127.0.0.1:${address.port}/api/ranking`;
   const response=await fetch(`${origin}?period=week&city=all&theme=all&userId=resident`);assert.equal(response.status,200);const result=await response.json();assert.equal(result.rows.length,5);assert.equal(result.own.profile.id,'resident');assert.equal('email' in result.rows[0].profile,false);
+  assert.deepEqual(result.cityRows,[]);
+  const api=origin.replace(/\/ranking$/,'');
+  const created=await fetch(`${api}/issues`,{method:'POST',headers:{'Content-Type':'application/json','X-Demo-User':'resident'},body:JSON.stringify({userId:'resident',title:'Calçada com peças soltas',category:'Calçada',address:'Centro, Itajaí',description:'',lat:-26.9,lng:-48.66})});
+  assert.equal(created.status,201);const issueId=(await created.json()).createdId;
+  assert.equal((await fetch(`${api}/issues/${issueId}/support`,{method:'PUT',headers:{'Content-Type':'application/json','X-Demo-User':'resident-felipe'},body:JSON.stringify({userId:'resident-felipe',supported:true})})).status,200);
+  const cities=(await (await fetch(`${origin}?city=all`)).json()).cityRows;
+  assert.deepEqual(cities,[{city:'Itajaí',points:12,participants:2,position:1}]);
+  assert.deepEqual(Object.keys(cities[0]).sort(),['city','participants','points','position']);
+  assert.equal((await fetch(`${api}/issues/${issueId}`,{method:'DELETE',headers:{'Content-Type':'application/json','X-Demo-User':'admin'},body:JSON.stringify({userId:'admin'})})).status,200);
+  assert.deepEqual((await (await fetch(`${origin}?city=all`)).json()).cityRows,[{city:'Itajaí',points:0,participants:2,position:1}]);
   for(const query of ['period=bad','city=Unknown','theme=bad','userId[a]=bad'])assert.equal((await fetch(`${origin}?${query}`)).status,400);
 });

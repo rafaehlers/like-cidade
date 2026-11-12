@@ -101,7 +101,7 @@ export default function App() {
 </>:<div className="header-location"><Building2 size={15}/><span>{activeMode==='admin'?'Administração da plataforma':'Central de atendimento'}</span></div>}
       <div className="header-actions">
         {activeMode==='map' && role !== 'agency' && <button className="button-primary header-report-button" aria-label="Reportar algo" title="Reportar algo" onClick={beginReport} disabled={!hydrated || placing || saving}><Plus size={19} /><span>Reportar algo</span></button>}
-        <button className="ranking-header-button" aria-label="Ranking de moradores" title="Ranking de moradores" onClick={()=>setRankingOpen(true)}><Trophy size={18}/><span>Ranking</span></button>
+        <button className="ranking-header-button" aria-label="Ranking" title="Ranking" onClick={()=>setRankingOpen(true)}><Trophy size={18}/><span>Ranking</span></button>
         <button className="help-button" aria-label="Como funciona" onClick={() => setHelp(true)}><CircleHelp size={18} /><span>Como funciona</span></button>
         <button type="button" className="theme-toggle" aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} onClick={toggleTheme}>
           {theme === 'dark' ? <Sun size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}

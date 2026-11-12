@@ -59,7 +59,7 @@ export default function ProfileSelector({ value, disabled, onChange, profiles, o
     </button>
     {open && <div className="profile-menu" id={menuId} role="menu" aria-label="Perfis de usuários" ref={menu} onKeyDown={navigate}>
       <button type="button" role="menuitem" className="profile-menu-item my-profile-item" onClick={()=>{setOpen(false);onOpenProfile();}}><UserRound size={20} /><span className="profile-menu-text"><strong>Meu perfil</strong><small>Pontos, conquistas e informações</small></span></button>
-      <button type="button" role="menuitem" className="profile-menu-item" onClick={()=>{setOpen(false);onOpenRanking();}}><Trophy size={20}/><span className="profile-menu-text"><strong>Ranking de moradores</strong><small>Quem está cuidando da cidade</small></span></button>
+      <button type="button" role="menuitem" className="profile-menu-item" onClick={()=>{setOpen(false);onOpenRanking();}}><Trophy size={20}/><span className="profile-menu-text"><strong>Ranking</strong><small>Moradores e cidades em ação</small></span></button>
       <p className="profile-menu-label">Trocar usuário</p>
       {accounts.map(([id, account]) => { const profile=profiles.find(item=>item.id===id); return <button type="button" key={id} role="menuitemradio" aria-checked={id === value}
         aria-label={`${profile?.nickname ?? account.name} · ${account.role}`} className="profile-menu-item" tabIndex={-1} onClick={() => choose(id)}>

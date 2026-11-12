@@ -22,7 +22,7 @@ O perfil tem visão geral, nível, progresso, conquistas, extrato com créditos/
 
 ## Fluxos ainda pendentes
 
-O app continua com os quatro status existentes. A validação da solução por moradores e a conclusão são uma entrega futura; **Resolvida não concede pontos de conclusão**. Os valores de +5 pela validação e +15 pela conclusão do relato do autor estão documentados e exibidos como pendentes, mas não há endpoint para concedê-los nem botão para simular créditos. Olho Vivo fica bloqueado enquanto não houver o fluxo de confirmação/contestação. Rankings de bairros, cidades e prefeituras, missões e temporadas continuam pendentes.
+O app continua com os quatro status existentes. A validação da solução por moradores e a conclusão são uma entrega futura; **Resolvida não concede pontos de conclusão**. Os valores de +5 pela validação e +15 pela conclusão do relato do autor estão documentados e exibidos como pendentes, mas não há endpoint para concedê-los nem botão para simular créditos. Olho Vivo fica bloqueado enquanto não houver o fluxo de confirmação/contestação. Rankings de bairros e prefeituras, missões e temporadas continuam pendentes.
 
 ## Persistência e migração
 
@@ -44,11 +44,11 @@ Documentação consultada: https://workos.com/docs/reference/authkit/user e http
 
 ## Rankings e demonstração (11/11/2026)
 
-Entrega de ranking de moradores: Top 10 geral/por cidade; semana, mês e total; filtros por relatos, apoios e acessibilidade; posição do usuário fora do Top 10; empates com a mesma posição e ordem estável. O período usa America/Sao_Paulo e se atualiza também com a revisão SSE e a passagem do tempo, sem apagar pontos anteriores. Rankings de bairros, cidades e prefeituras continuam pendentes.
+Entrega de ranking de moradores: Top 10 geral/por cidade; semana, mês e total; filtros por relatos, apoios e acessibilidade; posição do usuário fora do Top 10; empates com a mesma posição e ordem estável. O período usa America/Sao_Paulo e se atualiza também com a revisão SSE e a passagem do tempo, sem apagar pontos anteriores. Rankings de bairros e prefeituras continuam pendentes.
 
 SQLite versão 4 acrescenta `point_locations` (atribuição imutável da cidade do lançamento real, preservada em estornos mesmo após excluir a ocorrência) e `demo_point_ledger` (simulações separadas do extrato real). A cidade real é reconhecida na referência do relato; quando não há um município único reconhecível, o lançamento conta apenas no geral. Não se usa o município do perfil para atribuir pontos a uma cidade.
 
-`npm run seed:ranking` adiciona, explicitamente e uma única vez, 491 ações fictícias distribuídas por cidades e datas para Rafael, Felipe, Gabriel, Sérgio e Ricardo. Não cria ocorrências no mapa nem altera créditos, fotos, comentários ou apoios existentes. Os totais da demonstração são 1520, 990, 700, 390 e 190 pontos, respectivamente, acrescidos da pontuação real de cada perfil. O perfil/extrato identifica simulações e separa os dois subtotais. Atividades simuladas podem liberar os badges já implementados; check-in e pontuação de validação/conclusão continuam excluídos ou pendentes conforme descrito acima. Reexecutar a carga não duplica eventos nem muda as datas da primeira carga.
+`npm run seed:ranking` adiciona, explicitamente e uma única vez, 491 ações fictícias distribuídas por cidades e datas para Rafael, Felipe, Gabriel, Sérgio e Ricardo. Não cria ocorrências no mapa nem altera créditos, fotos, comentários ou apoios existentes. Os totais da demonstração são 1520, 990, 700, 390 e 190 pontos, respectivamente, acrescidos da pontuação real de cada perfil. A origem das atividades e os dois subtotais ficam preservados internamente; a interface exibe uma pontuação única. Atividades simuladas podem liberar os badges já implementados; check-in e pontuação de validação/conclusão continuam excluídos ou pendentes conforme descrito acima. Reexecutar a carga não duplica eventos nem muda as datas da primeira carga.
 
 ## Comentário privado e fim da conversa pública (11/11/2026)
 
@@ -59,3 +59,14 @@ SQLite versão 5 acrescenta `agency_scopes`, com atribuições independentes do 
 O servidor filtra todas as respostas de leitura e mutação. O SSE continua enviando apenas revisão. O cliente identifica o dono de cada snapshot, limpa a visualização ao trocar de perfil e descarta respostas atrasadas de outro contexto, inclusive quando a revisão global é igual. Os créditos das fotos ilustrativas permanecem públicos, separados do comentário privado.
 
 O seletor fictício ainda permite a qualquer participante assumir um perfil administrativo. Portanto, esta é uma demonstração de visibilidade por perfil, sem garantia de confidencialidade contra participantes do protótipo. O formulário informa isso e orienta a não inserir dados pessoais/sigilosos. Privacidade real depende de autenticação e atribuições verificadas no servidor.
+
+
+## Ranking de cidades (12/11/2026)
+
+A tela Ranking tem abas Moradores e Cidades. A aba Cidades agrega o ledger de todos os moradores, sem limitar a soma ao Top 10. Cada crédito ou estorno é atribuído à cidade da contribuição; a cidade do perfil não altera essa localização. Eventos sem cidade reconhecida, de gestores/administradores ou datados no futuro não entram nos totais municipais.
+
+Semana, mês e tipo de contribuição são compartilhados entre abas. O seletor de cidade aparece apenas em Moradores; Cidades compara todos os municípios com movimentação no recorte. Cidades sem movimentação não aparecem, enquanto cidades com saldo zero após estornos permanecem na classificação. Empates compartilham a posição e são ordenados pelo nome da cidade. O contador de participantes considera moradores distintos com créditos ou estornos no recorte.
+
+Selecionar uma cidade abre a aba Moradores filtrada nela, preservando período e tema. O seletor de abas aceita setas, Home e End. A atualização utiliza a revisão SSE e a passagem do tempo já existentes. Não há novo endpoint, nova tabela nem alteração dos pontos armazenados: a resposta de `GET /api/ranking` acrescenta `cityRows` com cidade, pontos, posição e número de participantes.
+
+A classificação mede a participação dos moradores; indicadores de atendimento da prefeitura continuam no CRM. Testes cobrem agregação além do Top 10, município da contribuição, estornos, participantes distintos, empates, períodos, temas, ausência de dados e a resposta pública da API.
