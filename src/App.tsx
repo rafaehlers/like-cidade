@@ -113,7 +113,6 @@ export default function App() {
       </div>
 </>:<div className="header-location"><Building2 size={15}/><span>{activeMode==='admin'?'Administração da plataforma':'Central de atendimento'}</span></div>}
       <div className="header-actions">
-        {activeMode==='map' && role !== 'agency' && <button className="button-primary header-report-button" aria-label="Reportar algo" title="Reportar algo" onClick={beginReport} disabled={!hydrated || placing || saving}><Plus size={19} /><span>Reportar algo</span></button>}
         <button className="ranking-header-button" aria-label="Ranking" title="Ranking" onClick={()=>setRankingOpen(true)}><Trophy size={18}/><span>Ranking</span></button>
         <button className="help-button" aria-label="Como funciona" onClick={() => setHelp(true)}><CircleHelp size={18} /><span>Como funciona</span></button>
         <button type="button" className="theme-toggle" aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} onClick={toggleTheme}>
@@ -139,7 +138,7 @@ export default function App() {
         <div className="sidebar-bottom"><span className="flex gap-1.5 items-center"><ShieldCheck size={13} />{loadError ? 'Sem conexão com o servidor' : connection === 'connected' ? 'Atualizações em tempo real' : 'Conectando ao servidor…'}</span><LegalLinks /></div>
       </aside>
       <div className={`map-workspace ${mobileView === 'map' ? 'mobile-active' : ''}`}>
-        <MapView theme={theme} issues={filtered} selectedId={selectedId} center={center} userLocation={userLocation} placing={placing} onSelect={id => setSelectedId(id)} onPick={p => { setPlacing(false); setDraft(p); }} onBounds={setBounds} onCenterChange={setMapCenter} onLocate={() => { void locate(); }} locating={locating} onCancelPlace={() => setPlacing(false)} onReady={setMapReady} />
+        <MapView canReport={role!=='agency'} reportDisabled={!hydrated || placing || saving} onReport={beginReport} theme={theme} issues={filtered} selectedId={selectedId} center={center} userLocation={userLocation} placing={placing} onSelect={id => setSelectedId(id)} onPick={p => { setPlacing(false); setDraft(p); }} onBounds={setBounds} onCenterChange={setMapCenter} onLocate={() => { void locate(); }} locating={locating} onCancelPlace={() => setPlacing(false)} onReady={setMapReady} />
       </div>
     </main>
     <nav className="mobile-tabs" aria-label="Visualização">

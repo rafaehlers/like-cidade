@@ -164,7 +164,9 @@
   .map-unavailable small { @apply text-[9px] text-muted mt-8; }
   .map-location-label { @apply absolute top-5 left-5  rounded-lg px-3 py-2.5 text-[10px] shadow-sm flex items-center gap-2; background: var(--surface-overlay); }
   .live-dot { @apply w-1.5 h-1.5 rounded-full bg-forest; }
-  .map-style-switch { @apply absolute bottom-12 left-4 flex gap-1 rounded-xl  p-1 shadow-sm; background: var(--surface-overlay); }
+  .map-bottom-actions { @apply absolute bottom-12 left-4 flex items-center gap-2.5; }
+  .map-report-button { min-height: 44px; padding: 10px 15px; white-space: nowrap; box-shadow: 0 2px 8px #00000018; }
+  .map-style-switch { @apply flex gap-1 rounded-xl  p-1 shadow-sm; background: var(--surface-overlay); }
   .map-style-switch button { @apply flex items-center justify-center gap-2 rounded-lg px-3 text-xs font-medium text-muted transition-colors; min-height: 36px; }
   .map-style-switch button:hover { @apply bg-stone-100 text-ink; }
   .map-style-switch button[aria-pressed=true] { @apply bg-forest text-white; }
@@ -176,7 +178,6 @@
   .button-primary { @apply bg-coral text-white rounded-xl px-5 py-3 flex items-center gap-2 text-xs font-semibold hover:bg-red-600 transition-colors; }
   .button-secondary { @apply border border-stone-200  text-ink rounded-xl px-4 py-2.5 inline-flex items-center justify-center gap-2 text-xs font-medium hover:bg-stone-50 transition-colors; background: var(--surface); }
   .text-button { @apply inline-flex items-center gap-1.5 text-xs text-forest-text font-medium hover:underline; }
-  .header-report-button { @apply shadow-sm shrink-0; padding: 11px 14px; font-size: 11px; white-space: nowrap; }
   .placing-message { @apply absolute top-20 left-1/2 -translate-x-1/2  text-white rounded-xl px-4 py-3 text-xs flex gap-2 items-center shadow-md w-max max-w-[90%]; background: #242d29; }
   .placing-message button { @apply ml-2; }
   .map-pin { @apply rounded-full border-[3px] border-white text-white shadow-lg bg-coral text-lg w-10 h-10 flex items-center justify-center transition-transform; }
@@ -280,10 +281,6 @@
 @media (min-width: 1400px) { .workspace { grid-template-columns: 410px minmax(0,1fr); } .sidebar-intro { padding: 32px 32px 24px; } .filter-area { padding-inline: 28px; } .issue-list { padding-inline: 26px; } }
 @media (max-width: 1500px) { .help-button span { display: none; } }
 @media (max-width: 1100px) { .header-tagline, .header-divider, .help-button { display: none; } .workspace { grid-template-columns: 340px minmax(0,1fr); } .app-header { column-gap: 16px; } .header-actions { gap: 12px; } }
-@media (min-width: 761px) and (max-width: 1000px) {
-  .header-report-button { width: 40px; height: 40px; padding: 0; justify-content: center; }
-  .header-report-button span { display: none; }
-}
 @media (max-width: 760px) {
   .app-header { height: 94px; padding: 8px 15px 10px; gap: 3px 8px; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'brand actions' 'location location'; }
   .header-branding { grid-area: brand; }
@@ -292,7 +289,7 @@
   .brand { font-size: 21px; gap: 0; letter-spacing: -.9px; }
   .brand img { width: 38px; height: 38px; }
   .header-actions { gap: 9px; }
-  .header-report-button { display: none; }
+  .map-report-button { display: none; }
   .help-button span, .profile-text small { display: none; }
   .help-button { display: none; }
   .profile-selector { padding-left: 9px; }
@@ -311,7 +308,7 @@
   .map-unavailable h2 { font-size: 24px; max-width: 260px; }
   .map-location-label { top: 16px; left: 14px; }
   .map-controls { bottom: 44px; right: 14px; }
-  .map-style-switch { bottom: 44px; left: 14px; }
+  .map-bottom-actions { bottom: 44px; left: 14px; }
   .mobile-tabs { display: flex; align-items: center; gap: 8px; padding: 9px 18px max(10px, env(safe-area-inset-bottom)); border-top: 1px solid var(--shell-border); background: var(--surface); flex-shrink: 0; }
   .mobile-tabs>button { display: flex; align-items: center; justify-content: center; gap: 7px; flex: 1; min-height: 44px; padding: 11px; font-size: 12px; color: var(--text-muted); border-radius: 10px; }
   .mobile-tabs>button[aria-pressed=true] { background: var(--tabs-active); color: var(--accent); font-weight: 600; }

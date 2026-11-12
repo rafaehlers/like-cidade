@@ -13,6 +13,7 @@ import GraveyardIcon from './GraveyardIcon';
 const CLUSTERING_ENABLED = import.meta.env.VITE_MAP_CLUSTERING_ENABLED?.trim().toLowerCase() !== 'false';
 
 type Props = {
+  canReport: boolean; reportDisabled: boolean; onReport: () => void;
   theme: Theme; issues: Issue[]; selectedId?: string; center: Position; userLocation?: Position;
   placing: boolean; onSelect: (id: string) => void; onPick: (p: Position) => void;
   onBounds: (bounds: google.maps.LatLngBoundsLiteral) => void;
@@ -122,10 +123,13 @@ export default function MapView(props: Props) {
     </div>}
     {props.userLocation && <div className="map-location-label"><span className="live-dot" />Localização ativada</div>}
     {props.placing && <div className="placing-message"><MousePointer2 size={18} /><span>Toque no mapa para posicionar o relato</span><button aria-label="Cancelar escolha de local" onClick={props.onCancelPlace}><X size={18} /></button></div>}
+    <div className="map-bottom-actions">
     {state === 'ready' && <div className="map-style-switch" role="group" aria-label="Estilo do mapa">
       <button type="button" aria-label="Mapa de ruas" aria-pressed={mapStyle === 'roadmap'} onClick={() => setMapStyle('roadmap')}><MapIcon size={16} aria-hidden="true" />Ruas</button>
       <button type="button" aria-label="Mapa de satélite" aria-pressed={mapStyle === 'satellite'} onClick={() => setMapStyle('satellite')}><Satellite size={16} aria-hidden="true" />Satélite</button>
     </div>}
+    {props.canReport && <button type="button" className="button-primary map-report-button" onClick={props.onReport} disabled={props.reportDisabled}><Plus size={18} aria-hidden="true"/>Reportar</button>}
+    </div>
     <div className="map-controls">
       <button aria-label="Centralizar na minha localização" title="Minha localização" onClick={props.onLocate} disabled={props.locating}><LocateFixed size={20} className={props.locating ? 'animate-pulse' : ''} /></button>
       {state === 'ready' && <div className="zoom-controls"><button aria-label="Aproximar mapa" onClick={() => map.current?.setZoom((map.current.getZoom() ?? 15) + 1)}><Plus size={20} /></button><button aria-label="Afastar mapa" onClick={() => map.current?.setZoom((map.current.getZoom() ?? 15) - 1)}><Minus size={20} /></button></div>}
