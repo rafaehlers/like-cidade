@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Issue, IssueSnapshot } from './domain';
+import type { PublicProfile } from './profiles';
 import { loadIssues } from './storage';
 
 export function useSharedIssues() {
+  const [profiles, setProfiles] = useState<PublicProfile[]>([]);
+  const [snapshotRevision, setSnapshotRevision] = useState(-1);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -11,7 +14,7 @@ export function useSharedIssues() {
   const refreshRef = useRef<() => void>(() => {});
   const applySnapshot = useCallback((snapshot: IssueSnapshot) => {
     // Older HTTP responses cannot overwrite a more recent SSE-triggered update.
-    if (snapshot.revision > revision.current) { revision.current = snapshot.revision; setIssues(snapshot.issues); }
+    if (snapshot.revision > revision.current) { revision.current = snapshot.revision; setIssues(snapshot.issues); setProfiles(snapshot.profiles ?? []); setSnapshotRevision(snapshot.revision); }
     setHydrated(true); setLoadError(false);
   }, []);
 
@@ -38,5 +41,5 @@ export function useSharedIssues() {
   }, [applySnapshot]);
 
   const refresh = useCallback(() => refreshRef.current(), []);
-  return { issues, hydrated, loadError, connection, applySnapshot, refresh };
+  return { issues, profiles, revision: snapshotRevision, hydrated, loadError, connection, applySnapshot, refresh };
 }

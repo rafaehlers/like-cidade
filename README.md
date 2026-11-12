@@ -41,6 +41,7 @@ Documentação: [carregamento](https://developers.google.com/maps/documentation/
 - Troque o seletor no topo: **Rafael, Felipe, Gabriel, Sérgio e Ricardo, moradores**, **Marcos, representante do órgão**, ou **Admin, administrador**. Cada morador tem identidade própria, com apoios e comentários independentes. Não existe login nem verificação real de permissões.
 - Moradores e administrador: clique em **Reportar algo**, depois no ponto do mapa. Complete título, categoria e foto opcional.
 - No celular, o botão **+** de reportar fica na barra inferior, à direita de **Relatos**, disponível tanto no mapa quanto na lista. No desktop, continua na barra superior.
+- Depois de escolher a categoria no formulário, aparecem dez subcategorias correspondentes. A escolha é opcional (**Não especificar**) e é limpa ao trocar de categoria. Quando informada, a subcategoria fica salva no SQLite, aparece nos detalhes e pode ser encontrada pela busca. A atualização do banco adiciona um campo opcional, preservando os relatos anteriores.
 - A rua é sugerida automaticamente a partir do ponto marcado, do GPS ou das coordenadas ajustadas, usando a Geocoding API já configurada. O campo continua editável. Uma referência digitada não é sobrescrita; nesse caso, é possível aplicar a sugestão explicitamente. Sem resultado ou conexão, o preenchimento manual continua disponível.
 - Sem a chave configurada, o restante do mockup funciona, com localização inicial de Itajaí e ajuste manual de coordenadas no formulário. O mapa não é simulado nem substituído por outro fornecedor.
 - Clique em um relato na lista ou em um pin para abrir detalhes, apoiar e comentar.
@@ -119,3 +120,9 @@ O backup usa a API de backup online do SQLite, incluindo as transações do WAL,
 ## Assets
 
 O favicon e símbolo do cabeçalho usam a extração do mapa colorido do logo aprovado, com apoio da ferramenta de geração de imagens. O PNG possui transparência alpha e o símbolo preenche a área disponível, sem fundo ou moldura branca.
+
+### Perfis e pontos (local)
+
+Abra **Meu perfil** no menu de usuário para editar apelido, foto, município e apresentação, acompanhar nível/conquistas e consultar o extrato de pontos e os próprios relatos. A pontuação é persistida e calculada no servidor; apoios retirados ou relatos removidos geram estornos. Check-in foi excluído do escopo. O login segue fictício; a separação de identidade está preparada para o WorkOS. Regras, limites desta versão e plano de integração estão em [docs/profiles-and-points.md](docs/profiles-and-points.md).
+
+O ranking de moradores está disponível no topo e no menu de perfil, com filtros por cidade, semana/mês/total e tipo de contribuição. Para preencher os cinco moradores fictícios com pontuações simuladas, execute `npm run build` e `npm run seed:ranking`. A carga é idempotente e mantém as ações fictícias separadas dos pontos reais; o perfil e o extrato identificam essa distinção. Faça um backup antes da primeira carga.

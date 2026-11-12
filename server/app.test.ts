@@ -53,18 +53,18 @@ test('independent users share atomic supports/comments and photos survive a serv
   let api = await start(path);
   t.after(async () => { await api.close(); await rm(directory, { recursive: true, force: true }); });
   const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0xff, 0xd9]);
-  const created = await api.request('/issues', 'POST', { ...payload, photo: `data:image/jpeg;base64,${jpeg.toString('base64')}` });
+  const created = await api.request('/issues', 'POST', { ...payload, subcategory: 'Piso quebrado', photo: `data:image/jpeg;base64,${jpeg.toString('base64')}` });
   assert.equal(created.status, 201);
   const initial = await created.json() as IssueSnapshot & { createdId: string };
   const id = initial.createdId;
-  const people = ['resident', 'resident-felipe', 'resident-gabriel', 'resident-sergio', 'resident-ricardo'];
+  const people = ['resident-felipe', 'resident-gabriel', 'resident-sergio', 'resident-ricardo'];
   const responses = await Promise.all([
     ...people.map(userId => api.request(`/issues/${id}/support`, 'PUT', { userId, supported: true })),
     ...people.slice(0, 2).map(userId => api.request(`/issues/${id}/comments`, 'POST', { userId, text: `Comentário de ${userId}` })),
   ]);
   assert.ok(responses.every(response => response.ok));
-  const firstSupport = await (await api.request(`/issues/${id}/support`, 'PUT', { userId: 'resident', supported: true })).json() as IssueSnapshot;
-  const repeatSupport = await (await api.request(`/issues/${id}/support`, 'PUT', { userId: 'resident', supported: true })).json() as IssueSnapshot;
+  const firstSupport = await (await api.request(`/issues/${id}/support`, 'PUT', { userId: 'resident-felipe', supported: true })).json() as IssueSnapshot;
+  const repeatSupport = await (await api.request(`/issues/${id}/support`, 'PUT', { userId: 'resident-felipe', supported: true })).json() as IssueSnapshot;
   assert.equal(repeatSupport.revision, firstSupport.revision);
   assert.equal((await api.request(`/issues/${id}/status`, 'PATCH', { userId: 'agency', status: 'Em andamento' })).status, 200);
   await api.close(); api = await start(path);
@@ -76,9 +76,28 @@ test('independent users share atomic supports/comments and photos survive a serv
   assert.equal(issue.status, 'Em andamento');
   assert.equal(issue.history.length, 2);
   assert.equal(issue.author, 'Rafael');
+  assert.equal(issue.subcategory, 'Piso quebrado');
   const photo = await fetch(`${api.origin}${issue.photo}`);
   assert.equal(photo.headers.get('content-type'), 'image/jpeg');
   assert.deepEqual(Buffer.from(await photo.arrayBuffer()), jpeg);
+});
+
+test('subcategory is optional but must belong to the selected category when supplied', async t => {
+  const api = await start(); t.after(() => api.close());
+  for (const subcategory of [undefined, '', null]) {
+    const response = await api.request('/issues', 'POST', { ...payload, subcategory });
+    assert.equal(response.status, 201);
+    const snapshot = await response.json() as IssueSnapshot & { createdId: string };
+    assert.equal(snapshot.issues.find(issue => issue.id === snapshot.createdId)!.subcategory, undefined);
+  }
+  const response = await api.request('/issues', 'POST', { ...payload, category: 'Iluminação', subcategory: 'Lâmpada apagada' });
+  assert.equal(response.status, 201);
+  const saved = await response.json() as IssueSnapshot & { createdId: string };
+  assert.equal(saved.issues.find(issue => issue.id === saved.createdId)!.subcategory, 'Lâmpada apagada');
+  for (const subcategory of ['Piso quebrado', 'Inexistente', 42, {}]) {
+    assert.equal((await api.request('/issues', 'POST', { ...payload, category: 'Iluminação', subcategory })).status, 400);
+  }
+  assert.equal(((await (await api.request('/issues')).json()) as IssueSnapshot).revision, saved.revision);
 });
 
 test('SSE notifies two open clients of every change and catches up after reconnecting', async t => {

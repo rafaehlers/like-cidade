@@ -1,9 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { inBounds, validPosition, canManage, seedIssues, PEOPLE, isUserId, toggleSupport, type Role, type UserId } from './domain';
+import { inBounds, validPosition, canManage, seedIssues, CATEGORIES, SUBCATEGORIES, PEOPLE, isSubcategory, isUserId, toggleSupport, type Role, type UserId } from './domain';
 import { cityLabel } from './mapCity';
 import { createIssueLayer } from './mapClusters';
 import { streetLabel } from './mapAddress';
+
+test('each category has ten subcategories and only accepts its own options', () => {
+  for (const category of CATEGORIES) {
+    assert.equal(SUBCATEGORIES[category].length, 10);
+    assert.equal(new Set(SUBCATEGORIES[category]).size, 10);
+    assert.ok(SUBCATEGORIES[category].every(option => isSubcategory(category, option)));
+  }
+  assert.equal(isSubcategory('Calçada', 'Lâmpada apagada'), false);
+  assert.equal(isSubcategory('Iluminação', 'Lâmpada apagada'), true);
+  for (const value of ['', null, 42, {}, 'Inexistente']) assert.equal(isSubcategory('Calçada', value), false);
+});
 
 test('street suggestions use structured street, number, neighborhood and Brazilian municipality', () => {
   const component = (long_name: string, type: string, short_name = long_name) => ({ long_name, short_name, types: [type] });

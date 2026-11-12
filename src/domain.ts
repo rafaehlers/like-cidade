@@ -1,21 +1,58 @@
 export type Role = 'resident' | 'agency' | 'admin';
-export type UserId = keyof typeof PEOPLE;
+export type UserId = string;
 export type Status = 'Registrada' | 'Em análise' | 'Em andamento' | 'Resolvida';
 export type Category = 'Calçada' | 'Iluminação' | 'Lixo' | 'Buraco' | 'Água e esgoto' | 'Espaço público';
+export type Subcategory = (typeof SUBCATEGORIES)[Category][number];
 export type Position = { lat: number; lng: number };
-export type NewIssue = Position & { title: string; category: Category; description: string; address: string; photo?: string };
-export type IssueSnapshot = { issues: Issue[]; revision: number };
+export type NewIssue = Position & { title: string; category: Category; subcategory?: Subcategory; description: string; address: string; photo?: string };
+export type IssueSnapshot = { issues: Issue[]; revision: number; profiles?: import('./profiles.js').PublicProfile[] };
 export type Comment = { id: string; author: string; authorId?: UserId; text: string; createdAt: string };
 export type Event = { label: string; author: string; authorId?: UserId; createdAt: string };
 export type Issue = Position & {
-  id: string; title: string; category: Category; description: string; address: string;
+  id: string; title: string; category: Category; subcategory?: Subcategory; description: string; address: string;
   status: Status; author: string; authorId: UserId; createdAt: string;
   photo?: string; likes: UserId[]; comments: Comment[]; history: Event[]; sample?: boolean;
 };
 export const CENTER: Position = { lat: -26.9078, lng: -48.6635 };
 export const CATEGORIES: Category[] = ['Calçada', 'Iluminação', 'Lixo', 'Buraco', 'Água e esgoto', 'Espaço público'];
+export const SUBCATEGORIES = {
+  'Calçada': [
+    'Piso quebrado', 'Piso desnivelado', 'Trecho sem pavimentação', 'Calçada obstruída',
+    'Rampa de acesso ausente', 'Rampa de acesso danificada', 'Piso tátil ausente',
+    'Piso tátil danificado', 'Meio-fio danificado', 'Vegetação invadindo o passeio',
+  ],
+  'Iluminação': [
+    'Lâmpada apagada', 'Lâmpada piscando', 'Lâmpada acesa durante o dia', 'Iluminação insuficiente',
+    'Luminária quebrada', 'Poste danificado ou inclinado', 'Poste caído', 'Fiação solta ou exposta',
+    'Vegetação bloqueando a iluminação', 'Trecho sem iluminação pública',
+  ],
+  'Lixo': [
+    'Lixo doméstico acumulado', 'Entulho de obra', 'Móveis e objetos volumosos descartados',
+    'Resíduos de poda acumulados', 'Lixeira transbordando', 'Lixeira quebrada', 'Falta de lixeira',
+    'Coleta não realizada', 'Lixo espalhado em área pública', 'Descarte de eletrônicos ou materiais perigosos',
+  ],
+  'Buraco': [
+    'Buraco no asfalto', 'Buraco em rua não pavimentada', 'Afundamento da pista', 'Desnível na pista',
+    'Asfalto soltando', 'Trincas e fissuras', 'Ondulações no pavimento', 'Remendo asfáltico danificado',
+    'Borda da pista cedendo', 'Buraco em ciclovia',
+  ],
+  'Água e esgoto': [
+    'Vazamento de água', 'Vazamento de esgoto', 'Esgoto a céu aberto', 'Bueiro entupido',
+    'Tampa de bueiro ausente', 'Tampa de bueiro danificada', 'Alagamento na via',
+    'Água parada em espaço público', 'Mau cheiro vindo da rede de esgoto', 'Canal ou vala de drenagem obstruído',
+  ],
+  'Espaço público': [
+    'Banco danificado', 'Brinquedo de playground danificado', 'Equipamento de academia ao ar livre danificado',
+    'Quadra esportiva danificada', 'Bebedouro sem funcionar', 'Banheiro público com problema',
+    'Corrimão ou guarda-corpo danificado', 'Árvore caída ou galho quebrado',
+    'Vegetação precisando de manutenção', 'Placa de identificação ou orientação danificada',
+  ],
+} as const satisfies Record<Category, readonly string[]>;
+export function isSubcategory(category: Category, value: unknown): value is Subcategory {
+  return typeof value === 'string' && SUBCATEGORIES[category].some(option => option === value);
+}
 export const STATUSES: Status[] = ['Registrada', 'Em análise', 'Em andamento', 'Resolvida'];
-export const PEOPLE = {
+export const PEOPLE: Record<string, { name: string; fullName: string; role: string; type: Role; initials: string }> = {
   resident: { name: 'Rafael', fullName: 'Rafael · Morador', role: 'Morador', type: 'resident', initials: 'RA' },
   'resident-felipe': { name: 'Felipe', fullName: 'Felipe · Morador', role: 'Morador', type: 'resident', initials: 'FE' },
   'resident-gabriel': { name: 'Gabriel', fullName: 'Gabriel · Morador', role: 'Morador', type: 'resident', initials: 'GA' },

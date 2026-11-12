@@ -1,17 +1,15 @@
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { CATEGORIES, PEOPLE, STATUSES, canManage, isUserId, validPosition, type Category, type Status, type UserId } from '../src/domain.js';
+import { CATEGORIES, STATUSES, canManage, isSubcategory, validPosition, type Category, type Status, type UserId } from '../src/domain.js';
 import { IssueDatabase } from './database.js';
 import { RequestError } from './errors.js';
+import { resolveDemoActor } from './identity.js';
+import { PILOT_CITIES, type PilotCity } from '../src/profiles.js';
 
 function body(req: Request): Record<string, unknown> {
   if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new RequestError(400, 'Envie os dados em formato JSON.');
   return req.body;
-}
-function actor(data: Record<string, unknown>): UserId {
-  if (!isUserId(data.userId)) throw new RequestError(400, 'Selecione um perfil válido da demonstração.');
-  return data.userId;
 }
 function text(value: unknown, label: string, min: number, max: number) {
   if (typeof value !== 'string' || value.trim().length < min || value.trim().length > max) throw new RequestError(400, `${label}: use de ${min} a ${max} caracteres.`);
@@ -19,7 +17,10 @@ function text(value: unknown, label: string, min: number, max: number) {
 }
 function id(req: Request) { return String(req.params.id); }
 
-export function createApp({ databasePath, staticDirectory }: { databasePath: string; staticDirectory?: string }) {
+export function createApp({ databasePath, staticDirectory, resolveActor = resolveDemoActor }: {
+  databasePath: string; staticDirectory?: string;
+  resolveActor?: (request: Request, data: Record<string, unknown>) => UserId;
+}) {
   const database = new IssueDatabase(databasePath);
   const app = express();
   const clients = new Set<Response>();
@@ -38,6 +39,38 @@ export function createApp({ databasePath, staticDirectory }: { databasePath: str
 
   app.get('/api/health', (_req, res) => { database.db.prepare('SELECT 1').get(); res.json({ ok: true, storage: 'sqlite' }); });
   app.get('/api/issues', (_req, res) => res.json(database.snapshot()));
+  app.get('/api/ranking',(req,res)=>{
+    if(Object.keys(req.query).some(key=>!['period','theme','city','userId'].includes(key)))throw new RequestError(400,'Filtros de ranking inválidos.');
+    const period=req.query.period ?? 'all';const theme=req.query.theme ?? 'all';const city=req.query.city ?? 'all';
+    if(typeof period!=='string'||typeof theme!=='string'||typeof city!=='string')throw new RequestError(400,'Filtros de ranking inválidos.');
+    if(!['week','month','all'].includes(String(period)) || !['all','reports','supports','accessibility'].includes(String(theme)) || (city!=='all' && !(PILOT_CITIES as readonly unknown[]).includes(city)))throw new RequestError(400,'Filtros de ranking inválidos.');
+    if(req.query.userId!==undefined && typeof req.query.userId!=='string')throw new RequestError(400,'Perfil inválido.');
+    res.json(database.profiles.ranking({period:period as import('../src/ranking.js').RankingPeriod,theme:theme as import('../src/ranking.js').RankingTheme,city:city as PilotCity|'all',userId:req.query.userId as string|undefined},database.revision));
+  });
+  app.get('/api/profiles/:id', (req,res) => res.json(database.profiles.details(id(req),database.revision)));
+  app.get('/api/profiles/:id/avatar', (req,res) => {
+    const avatar=database.profiles.avatar(id(req));
+    if (!avatar) throw new RequestError(404,'Foto de perfil não encontrada.');
+    res.type('image/jpeg').send(Buffer.from(avatar));
+  });
+  app.patch('/api/profiles/:id', (req,res) => {
+    const data=body(req); const userId=resolveActor(req,data);
+    if (userId!==id(req)) throw new RequestError(403,'Você só pode editar o perfil selecionado.');
+    const allowed=['userId','nickname','city','bio','avatar'];
+    if (Object.keys(data).some(key=>!allowed.includes(key))) throw new RequestError(400,'O perfil contém campos que não podem ser alterados.');
+    const nickname=text(data.nickname,'Apelido',2,30);
+    if (/[\u0000-\u001f\u007f]/.test(nickname) || nickname.includes('@')) throw new RequestError(400,'Use um apelido sem e-mail ou caracteres de controle.');
+    if (!(PILOT_CITIES as readonly unknown[]).includes(data.city)) throw new RequestError(400,'Escolha um município do piloto.');
+    let avatar: Buffer | undefined;
+    if (data.avatar !== undefined && data.avatar !== null) {
+      const match=typeof data.avatar==='string' && /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(data.avatar);
+      if (!match) throw new RequestError(400,'Escolha uma foto JPEG preparada pelo aplicativo.');
+      avatar=Buffer.from(match[1],'base64');
+      if (avatar.length>512*1024 || avatar.length<4 || avatar[0]!==0xff || avatar[1]!==0xd8 || avatar[2]!==0xff) throw new RequestError(400,'Foto de perfil inválida ou maior que 512 KB.');
+    }
+    database.updateProfile(userId,{nickname,city:data.city as PilotCity,bio:text(data.bio ?? '', 'Sobre você',0,160),avatar:data.avatar as string | null | undefined},avatar);
+    finish(res);
+  });
   app.get('/api/events', (_req, res) => {
     res.status(200).set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' });
     res.flushHeaders();
@@ -53,9 +86,12 @@ export function createApp({ databasePath, staticDirectory }: { databasePath: str
     res.type('image/jpeg').send(Buffer.from(photo));
   });
   app.post('/api/issues', (req, res) => {
-    const data = body(req); const userId = actor(data);
-    if (PEOPLE[userId].type === 'agency') throw new RequestError(403, 'Use um perfil de morador ou administrador para publicar.');
+    const data = body(req); const userId = resolveActor(req,data);
+    if (database.profiles.require(userId).role === 'agency') throw new RequestError(403, 'Use um perfil de morador ou administrador para publicar.');
     if (!CATEGORIES.includes(data.category as Category)) throw new RequestError(400, 'Escolha uma categoria válida.');
+    const category = data.category as Category;
+    const subcategory = typeof data.subcategory === 'string' ? data.subcategory.trim() || undefined : data.subcategory ?? undefined;
+    if (subcategory !== undefined && !isSubcategory(category, subcategory)) throw new RequestError(400, 'Escolha uma subcategoria válida para a categoria selecionada.');
     if (typeof data.lat !== 'number' || typeof data.lng !== 'number' || !validPosition({ lat: data.lat, lng: data.lng })) throw new RequestError(400, 'Escolha um ponto válido no mapa.');
     let photo: Buffer | undefined;
     if (data.photo !== undefined) {
@@ -64,28 +100,28 @@ export function createApp({ databasePath, staticDirectory }: { databasePath: str
       photo = Buffer.from(match[1], 'base64');
       if (photo.length > 3 * 1024 * 1024 || photo.length < 4 || photo[0] !== 0xff || photo[1] !== 0xd8 || photo[2] !== 0xff) throw new RequestError(400, 'A foto é inválida ou ultrapassa 3 MB após o preparo.');
     }
-    const createdId = database.create({ title: text(data.title, 'Título', 5, 100), category: data.category as Category,
+    const createdId = database.create({ title: text(data.title, 'Título', 5, 100), category, subcategory,
       description: text(data.description ?? '', 'Descrição', 0, 1200), address: text(data.address ?? 'Local marcado no mapa', 'Referência', 1, 140),
       lat: data.lat, lng: data.lng }, userId, photo);
     res.set('Location', `/api/issues/${createdId}`);
     finish(res, 201, { createdId });
   });
   app.put('/api/issues/:id/support', (req, res) => {
-    const data = body(req); const userId = actor(data);
+    const data = body(req); const userId = resolveActor(req,data);
     if (typeof data.supported !== 'boolean') throw new RequestError(400, 'Informe se deseja apoiar o relato.');
     database.support(id(req), userId, data.supported); finish(res);
   });
   app.post('/api/issues/:id/comments', (req, res) => {
-    const data = body(req); database.comment(id(req), actor(data), text(data.text, 'Comentário', 1, 700)); finish(res, 201);
+    const data = body(req); database.comment(id(req), resolveActor(req,data), text(data.text, 'Comentário', 1, 700)); finish(res, 201);
   });
   app.patch('/api/issues/:id/status', (req, res) => {
-    const data = body(req); const userId = actor(data);
-    if (!canManage(PEOPLE[userId].type)) throw new RequestError(403, 'Esse perfil não pode atualizar o atendimento.');
+    const data = body(req); const userId = resolveActor(req,data);
+    if (!canManage(database.profiles.require(userId).role)) throw new RequestError(403, 'Esse perfil não pode atualizar o atendimento.');
     if (!STATUSES.includes(data.status as Status)) throw new RequestError(400, 'Escolha uma situação válida.');
     database.status(id(req), userId, data.status as Status); finish(res);
   });
   app.delete('/api/issues/:id', (req, res) => {
-    if (PEOPLE[actor(body(req))].type !== 'admin') throw new RequestError(403, 'Use o perfil de administrador para remover relatos.');
+    if (database.profiles.require(resolveActor(req,body(req))).role !== 'admin') throw new RequestError(403, 'Use o perfil de administrador para remover relatos.');
     database.remove(id(req)); finish(res);
   });
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Endereço não encontrado.' }));

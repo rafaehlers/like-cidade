@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Camera, Check, ImagePlus, LoaderCircle, LocateFixed, MapPin, X, Navigation } from 'lucide-react';
-import { CATEGORIES, validPosition, type Category, type Position, type NewIssue } from '../domain';
+import { CATEGORIES, SUBCATEGORIES, validPosition, type Category, type Subcategory, type Position, type NewIssue } from '../domain';
 import { preparePhoto } from '../storage';
 import Modal from './Modal';
 import CategoryIcon from './CategoryIcon';
@@ -9,6 +9,8 @@ import { useSuggestedAddress } from '../useSuggestedAddress';
 export type { NewIssue } from '../domain';
 export default function IssueForm({ position, onClose, onSave, onLocate, locating }: { position: Position; onClose: () => void; onSave: (value: NewIssue) => Promise<void>; onLocate: () => Promise<Position | undefined>; locating: boolean }) {
   const [point, setPoint] = useState(position);
+  const [category, setCategory] = useState<Category | ''>('');
+  const [subcategory, setSubcategory] = useState<Subcategory | ''>('');
   const address = useSuggestedAddress(point);
   const [photo, setPhoto] = useState<string>();
   const [processing, setProcessing] = useState(false);
@@ -19,9 +21,10 @@ export default function IssueForm({ position, onClose, onSave, onLocate, locatin
     const data = new FormData(event.currentTarget);
     const title = String(data.get('title') || '').trim();
     if (title.length < 5) { setError('Conte um pouco mais no título, com pelo menos 5 caracteres.'); return; }
+    if (!category) { setError('Escolha a categoria do problema.'); return; }
     if (!validPosition(point)) { setError('Confira a latitude e a longitude do ponto.'); return; }
     setSaving(true); setError('');
-    try { await onSave({ title, category: data.get('category') as Category, description: String(data.get('description') || '').trim(), address: String(data.get('address') || '').trim() || 'Local marcado no mapa', photo, ...point }); }
+    try { await onSave({ title, category, subcategory: subcategory || undefined, description: String(data.get('description') || '').trim(), address: String(data.get('address') || '').trim() || 'Local marcado no mapa', photo, ...point }); }
     catch (error) { setError(error instanceof Error ? error.message : 'Não foi possível publicar. Tente novamente.'); }
     finally { setSaving(false); }
   }
@@ -33,11 +36,17 @@ export default function IssueForm({ position, onClose, onSave, onLocate, locatin
       <details className="coordinate-details"><summary><Navigation size={13} />Ajustar coordenadas</summary><div className="grid grid-cols-2 gap-3 mt-3"><label>Latitude<input aria-label="Latitude" type="number" step="any" min="-90" max="90" required value={Number.isFinite(point.lat) ? point.lat : ''} onChange={e => setPoint(p => ({ ...p, lat: e.target.value === '' ? NaN : Number(e.target.value) }))} /></label><label>Longitude<input aria-label="Longitude" type="number" step="any" min="-180" max="180" required value={Number.isFinite(point.lng) ? point.lng : ''} onChange={e => setPoint(p => ({ ...p, lng: e.target.value === '' ? NaN : Number(e.target.value) }))} /></label></div></details>
       <label>Um título para o problema <span className="text-coral">*</span><input autoFocus name="title" placeholder="Ex.: calçada quebrada perto da praça" minLength={5} maxLength={100} required /></label>
       <fieldset className="category-picker"><legend>Categoria <span className="text-coral">*</span></legend>
-        <div className="category-options">{CATEGORIES.map((category, index) => <label className="category-option" key={category}>
-          <input type="radio" name="category" value={category} defaultChecked={category === 'Calçada'} required />
-          <span className="category-option-content"><span className={`category-option-icon category-${index}`}><CategoryIcon category={category} size={20} /></span><span>{category}</span><Check size={12} className="category-option-check" aria-hidden="true" /></span>
+        <div className="category-options">{CATEGORIES.map((option, index) => <label className="category-option" key={option}>
+          <input type="radio" name="category" value={option} checked={category === option} onChange={() => { setCategory(option); setSubcategory(''); }} required />
+          <span className="category-option-content"><span className={`category-option-icon category-${index}`}><CategoryIcon category={option} size={20} /></span><span>{option}</span><Check size={12} className="category-option-check" aria-hidden="true" /></span>
         </label>)}</div>
       </fieldset>
+      {category && <label className="subcategory-field">Subcategoria <span className="font-normal text-muted">(opcional)</span>
+        <select name="subcategory" value={subcategory} onChange={event => setSubcategory(event.target.value as Subcategory | '')}>
+          <option value="">Não especificar</option>
+          {SUBCATEGORIES[category].map(option => <option key={option} value={option}>{option}</option>)}
+        </select>
+      </label>}
       <div><label>Rua ou ponto de referência<input name="address" placeholder="Ex.: ao lado da escola" maxLength={140} value={address.value} onChange={event => address.edit(event.target.value)} aria-describedby="address-hint" /></label>
         <div id="address-hint" className="address-hint" role="status" aria-live="polite">
           {address.status === 'loading' ? <span><LoaderCircle size={13} className="animate-spin" aria-hidden="true" />Identificando a rua pelo ponto marcado…</span>
