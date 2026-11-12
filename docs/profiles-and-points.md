@@ -22,7 +22,7 @@ O perfil tem visão geral, nível, progresso, conquistas, extrato com créditos/
 
 ## Fluxos ainda pendentes
 
-O app continua com os quatro status existentes. A validação da solução por moradores e a conclusão são uma entrega futura; **Resolvida não concede pontos de conclusão**. Os valores de +5 pela validação e +15 pela conclusão do relato do autor estão documentados e exibidos como pendentes, mas não há endpoint para concedê-los nem botão para simular créditos. Olho Vivo fica bloqueado enquanto não houver o fluxo de confirmação/contestação. Rankings, missões e temporadas não foram incluídos nesta entrega.
+O app continua com os quatro status existentes. A validação da solução por moradores e a conclusão são uma entrega futura; **Resolvida não concede pontos de conclusão**. Os valores de +5 pela validação e +15 pela conclusão do relato do autor estão documentados e exibidos como pendentes, mas não há endpoint para concedê-los nem botão para simular créditos. Olho Vivo fica bloqueado enquanto não houver o fluxo de confirmação/contestação. Rankings de bairros, cidades e prefeituras, missões e temporadas continuam pendentes.
 
 ## Persistência e migração
 
@@ -40,7 +40,7 @@ Documentação consultada: https://workos.com/docs/reference/authkit/user e http
 
 ## Validação local
 
-`npm test` cobre migração/reabertura, limites dos níveis, conquistas, reversões, apoios concorrentes/idempotentes, exclusão, fotos, validações da API, campos protegidos, identidade verificada injetável e notificações SSE. `npm run build` verifica a compilação cliente/servidor. Nada desta entrega foi enviado à VPS.
+`npm test` cobre migração/reabertura, limites dos níveis, conquistas, reversões, apoios concorrentes/idempotentes, exclusão, fotos, validações da API, campos protegidos, identidade verificada injetável e notificações SSE. `npm run build` verifica a compilação cliente/servidor. O perfil foi inicialmente validado apenas localmente. Em 11/11/2026, Rafael autorizou e foi concluída a publicação do perfil e dos rankings fictícios na VPS.
 
 ## Rankings e demonstração (11/11/2026)
 
