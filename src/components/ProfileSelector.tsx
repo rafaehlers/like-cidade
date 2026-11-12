@@ -19,7 +19,7 @@ export default function ProfileSelector({ value, disabled, onChange, profiles, o
 
   useEffect(() => {
     if (!open) return;
-    menu.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
+    menu.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus({ preventScroll: true });
     const closeOutside = (event: PointerEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -61,12 +61,14 @@ export default function ProfileSelector({ value, disabled, onChange, profiles, o
       <button type="button" role="menuitem" className="profile-menu-item my-profile-item" onClick={()=>{setOpen(false);onOpenProfile();}}><UserRound size={20} /><span className="profile-menu-text"><strong>Meu perfil</strong><small>Pontos, conquistas e informações</small></span></button>
       <button type="button" role="menuitem" className="profile-menu-item" onClick={()=>{setOpen(false);onOpenRanking();}}><Trophy size={20}/><span className="profile-menu-text"><strong>Ranking</strong><small>Moradores e cidades em ação</small></span></button>
       <p className="profile-menu-label">Trocar usuário</p>
+      <div className="profile-menu-accounts" role="group" aria-label="Trocar usuário">
       {accounts.map(([id, account]) => { const profile=profiles.find(item=>item.id===id); return <button type="button" key={id} role="menuitemradio" aria-checked={id === value}
         aria-label={`${profile?.nickname ?? account.name} · ${account.role}`} className="profile-menu-item" tabIndex={-1} onClick={() => choose(id)}>
         <Avatar profile={profile ?? {nickname:account.name,role:account.type}} />
         <span className="profile-menu-text"><strong>{profile?.nickname ?? account.name}</strong><small>{account.role}</small></span>
         {id === value && <Check size={17} className="profile-menu-check" aria-hidden="true" />}
       </button>; })}
+      </div>
     </div>}
   </div>;
 }

@@ -93,7 +93,9 @@
   .profile-selector { @apply relative pl-4 border-l border-stone-200; }
   .profile-trigger { @apply flex items-center gap-2.5 text-left rounded-lg; }
   .profile-trigger>svg { @apply shrink-0; }
-  .profile-menu { position: absolute; top: calc(100% + 18px); right: 0; z-index: 40; width: 280px; max-width: calc(100vw - 30px); max-height: calc(100dvh - 120px); overflow-y: auto; padding: 7px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text-primary); box-shadow: 0 12px 40px #00000030; }
+  .profile-menu { position: absolute; top: calc(100% + 18px); right: 0; z-index: 40; display: flex; flex-direction: column; width: 280px; max-width: calc(100vw - 30px); max-height: calc(100dvh - 120px); overflow: hidden; padding: 7px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text-primary); box-shadow: 0 12px 40px #00000030; }
+  .profile-menu > .profile-menu-item, .profile-menu-label { flex-shrink: 0; }
+  .profile-menu-accounts { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
   .profile-menu-item { @apply flex items-center gap-3 w-full text-left rounded-xl; min-height: 56px; padding: 9px 10px; font-family: var(--font-sans); }
   .profile-menu-item:hover, .profile-menu-item:focus-visible { background: var(--surface-subtle); }
   .profile-menu-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -377,6 +379,7 @@
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .avatar-large { width: 80px; height: 80px; font-size: 25px; border: 4px solid var(--surface); box-shadow: 0 3px 16px #0000000b; }
 .profile-menu-label { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; padding: 14px 10px 6px; color: var(--text-muted); border-top: 1px solid var(--border-soft); margin-top: 5px; }
+@media (max-width: 760px) { .profile-menu { max-height: calc(100dvh - 78px - env(safe-area-inset-bottom)); } }
 .my-profile-item { color: var(--accent); }
 .profile-menu-text strong, .profile-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-inline-link { display: inline-flex; align-items: center; gap: 4px; text-align: left; color: var(--accent); font: inherit; }
