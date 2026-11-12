@@ -1,10 +1,11 @@
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { CATEGORIES, STATUSES, canManage, isSubcategory, validPosition, type Category, type Status, type UserId } from '../src/domain.js';
+import { CATEGORIES, STATUSES, isSubcategory, validPosition, type Category, type Status, type UserId } from '../src/domain.js';
 import { IssueDatabase } from './database.js';
 import { RequestError } from './errors.js';
 import { resolveDemoActor } from './identity.js';
+import { PRIORITIES, type AssignmentUpdate, type ServiceUpdate } from '../src/management.js';
 import { PILOT_CITIES, type PilotCity } from '../src/profiles.js';
 
 function body(req: Request): Record<string, unknown> {
@@ -44,6 +45,28 @@ export function createApp({ databasePath, staticDirectory, resolveActor = resolv
 
   app.get('/api/health', (_req, res) => { database.db.prepare('SELECT 1').get(); res.json({ ok: true, storage: 'sqlite' }); });
   app.get('/api/issues', (_req, res) => res.json(database.snapshot(viewer(_req))));
+  app.get('/api/management',(req,res)=>res.json(database.managementSnapshot(viewer(req))));
+  app.put('/api/management/assignments',(req,res)=>{
+    const data=body(req);const userId=resolveActor(req,data);
+    if(!(PILOT_CITIES as readonly unknown[]).includes(data.city)||typeof data.targetUserId!=='string'||!Number.isSafeInteger(data.expectedVersion)||Number(data.expectedVersion)<0||!Array.isArray(data.assignments)||data.assignments.length>CATEGORIES.length)throw new RequestError(400,'Confira a cidade, o usuário e as categorias.');
+    const assignments=data.assignments.map((item:unknown)=>{
+      if(!item||typeof item!=='object'||Array.isArray(item))throw new RequestError(400,'Categoria inválida.');
+      const row=item as Record<string,unknown>;if(!CATEGORIES.includes(row.category as Category))throw new RequestError(400,'Categoria inválida.');
+      return {category:row.category as Category,department:text(row.department ?? '', 'Órgão ou secretaria',0,80)};
+    });
+    if(new Set(assignments.map(item=>item.category)).size!==assignments.length)throw new RequestError(400,'Não repita categorias.');
+    database.management.assign(userId,{city:data.city,targetUserId:data.targetUserId,expectedVersion:data.expectedVersion,assignments} as AssignmentUpdate);finish(req,res,200,viewer(req)===userId?{management:database.managementSnapshot(userId)}:{});
+  });
+  const updateService=(req:Request,res:Response)=>{
+    const data=body(req);const actor=resolveActor(req,data);
+    if(!STATUSES.includes(data.status as Status)||!STATUSES.includes(data.expectedStatus as Status)||!Number.isSafeInteger(data.expectedVersion)||Number(data.expectedVersion)<0)throw new RequestError(400,'Escolha um status válido e atualize os dados do atendimento.');
+    if(data.priority!==undefined && data.priority!=='auto'&&!PRIORITIES.includes(data.priority as import('../src/management.js').Priority))throw new RequestError(400,'Prioridade inválida.');
+    let photo:Buffer|undefined;
+    if(data.photo!==undefined){const match=typeof data.photo==='string'&&/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(data.photo);if(!match)throw new RequestError(400,'Envie uma foto JPEG preparada pelo aplicativo.');photo=Buffer.from(match[1],'base64');if(photo.length<4||photo.length>3*1024*1024||photo[0]!==0xff||photo[1]!==0xd8||photo[2]!==0xff)throw new RequestError(400,'Foto de evidência inválida ou maior que 3 MB.');}
+    database.management.update(actor,id(req),{comment:text(data.comment,'Comentário interno',3,1200),status:data.status,expectedStatus:data.expectedStatus,expectedVersion:data.expectedVersion,priority:data.priority,photo:data.photo} as ServiceUpdate,photo);finish(req,res,200,viewer(req)===actor?{management:database.managementSnapshot(actor)}:{});
+  };
+  app.post('/api/management/issues/:id/events',updateService);
+  app.get('/api/management/issues/:id/events/:eventId/photo',(req,res)=>{const photo=database.management.photo(viewer(req),id(req),String(req.params.eventId));res.type('image/jpeg').send(Buffer.from(photo));});
   app.get('/api/ranking',(req,res)=>{
     if(Object.keys(req.query).some(key=>!['period','theme','city','userId'].includes(key)))throw new RequestError(400,'Filtros de ranking inválidos.');
     const period=req.query.period ?? 'all';const theme=req.query.theme ?? 'all';const city=req.query.city ?? 'all';
@@ -117,12 +140,7 @@ export function createApp({ databasePath, staticDirectory, resolveActor = resolv
     database.support(id(req), userId, data.supported); finish(req,res);
   });
   app.post('/api/issues/:id/comments', (_req, _res) => { throw new RequestError(410,'A conversa foi encerrada. Envie as informações para o atendimento no formulário do relato.'); });
-  app.patch('/api/issues/:id/status', (req, res) => {
-    const data = body(req); const userId = resolveActor(req,data);
-    if (!canManage(database.profiles.require(userId).role)) throw new RequestError(403, 'Esse perfil não pode atualizar o atendimento.');
-    if (!STATUSES.includes(data.status as Status)) throw new RequestError(400, 'Escolha uma situação válida.');
-    database.status(id(req), userId, data.status as Status); finish(req,res);
-  });
+  app.patch('/api/issues/:id/status',updateService);
   app.delete('/api/issues/:id', (req, res) => {
     if (database.profiles.require(resolveActor(req,body(req))).role !== 'admin') throw new RequestError(403, 'Use o perfil de administrador para remover relatos.');
     database.remove(id(req)); finish(req,res);

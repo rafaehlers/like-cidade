@@ -4,6 +4,7 @@ import type { PublicProfile } from './profiles';
 import { loadIssues } from './storage';
 
 export function useSharedIssues(userId:UserId) {
+  const [capabilities,setCapabilities]=useState({admin:false,service:false});
   const [loadedFor,setLoadedFor]=useState<UserId>();
   const currentUser=useRef(userId); currentUser.current=userId;
   const [profiles, setProfiles] = useState<PublicProfile[]>([]);
@@ -17,7 +18,7 @@ export function useSharedIssues(userId:UserId) {
   const applySnapshot = useCallback((snapshot: IssueSnapshot) => {
     if(snapshot.viewerId!==userId || currentUser.current!==userId)return;
     // Older HTTP responses cannot overwrite a more recent SSE-triggered update.
-    if (revision.current.viewerId!==userId || snapshot.revision > revision.current.value) { revision.current = {viewerId:userId,value:snapshot.revision}; setLoadedFor(userId); setIssues(snapshot.issues); setProfiles(snapshot.profiles ?? []); setSnapshotRevision(snapshot.revision); }
+    if (revision.current.viewerId!==userId || snapshot.revision > revision.current.value) { revision.current = {viewerId:userId,value:snapshot.revision}; setLoadedFor(userId); setCapabilities(snapshot.capabilities ?? {admin:false,service:false}); setIssues(snapshot.issues); setProfiles(snapshot.profiles ?? []); setSnapshotRevision(snapshot.revision); }
     setHydrated(true); setLoadError(false);
   }, [userId]);
 
@@ -44,5 +45,5 @@ export function useSharedIssues(userId:UserId) {
   }, [applySnapshot,userId]);
 
   const refresh = useCallback(() => refreshRef.current(), []);
-  return { issues:loadedFor===userId?issues:[], profiles, revision:loadedFor===userId?snapshotRevision:-1, hydrated:loadedFor===userId && hydrated, loadError, connection, applySnapshot, refresh };
+  return { capabilities:loadedFor===userId?capabilities:{admin:false,service:false}, issues:loadedFor===userId?issues:[], profiles, revision:loadedFor===userId?snapshotRevision:-1, hydrated:loadedFor===userId && hydrated, loadError, connection, applySnapshot, refresh };
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownWideNarrow, ArrowUpRight, Building2, Check, CheckCheck, CircleHelp, Clock3, Heart, Map as MapIcon, MapPin, Plus, Search, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X, LoaderCircle, List, Moon, Sun, Trophy } from 'lucide-react';
-import { CATEGORIES, CENTER, PEOPLE, STATUSES, canManage, inBounds, isUserId, type IssueSnapshot, type Issue, type Position, type UserId, type Status } from './domain';
-import { createSharedIssue, removeSharedIssue, setIssueStatus, setIssueSupport } from './storage';
+import { ArrowDownWideNarrow, ArrowUpRight, Building2, Check, CheckCheck, CircleHelp, Clock3, Heart, Map as MapIcon, MapPin, Plus, Search, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X, LoaderCircle, List, Moon, Sun, Trophy, ClipboardList } from 'lucide-react';
+import { CATEGORIES, CENTER, PEOPLE, STATUSES, inBounds, isUserId, type IssueSnapshot, type Issue, type Position, type UserId, type Status } from './domain';
+import { createSharedIssue, removeSharedIssue, setIssueSupport } from './storage';
 import MapView from './components/MapView';
 import Modal from './components/Modal';
 import IssueForm, { type NewIssue } from './components/IssueForm';
@@ -9,6 +9,7 @@ import CategoryIcon from './components/CategoryIcon';
 import ProfileSelector from './components/ProfileSelector';
 import UserProfile from './components/UserProfile';
 import Ranking from './components/Ranking';
+import ManagementPanel from './components/ManagementPanel';
 import { useMapCity } from './useMapCity';
 import { useSharedIssues } from './useSharedIssues';
 import { useTheme } from './useTheme';
@@ -21,7 +22,10 @@ export default function App() {
   const [userId, setUserId] = useState<UserId>(() => { try { const value = localStorage.getItem('like-cidade-user') ?? localStorage.getItem('like-cidade-role'); return isUserId(value) ? value : 'resident'; } catch { return 'resident'; } });
   const person = PEOPLE[userId];
   const role = person.type;
-  const { issues, profiles, revision, hydrated, loadError, connection, applySnapshot, refresh } = useSharedIssues(userId);
+  const { issues, profiles, capabilities, revision, hydrated, loadError, connection, applySnapshot, refresh } = useSharedIssues(userId);
+  const [workspaceMode,setWorkspaceMode]=useState<'map'|'admin'|'service'>(()=>userId==='admin'?'admin':PEOPLE[userId]?.type==='agency'?'service':'map');
+  const [serviceIssueId,setServiceIssueId]=useState<string>();
+  const activeMode=capabilities.service?workspaceMode:'map';
   const [rankingOpen,setRankingOpen] = useState(false);
   const [profileId, setProfileId] = useState<UserId>();
   const displayName = (id: UserId | undefined, fallback: string) => profiles.find(profile=>profile.id===id)?.nickname ?? fallback;
@@ -56,14 +60,14 @@ export default function App() {
       setLocating(false); setToast(error.code === 1 ? 'Tudo bem! Você pode explorar Itajaí ou escolher um ponto no mapa sem compartilhar sua localização.' : 'Não encontramos sua localização. Você pode escolher um ponto no mapa.'); resolve(undefined);
     }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 });
   }), []);
-  useEffect(() => { if (!didLocate.current) { didLocate.current = true; void locate(); } }, [locate]);
+  useEffect(() => { if (workspaceMode==='map' && !didLocate.current) { didLocate.current = true; void locate(); } }, [locate,workspaceMode]);
   const filtered = useMemo(() => issues.filter(i =>
     (category === 'Todas as categorias' || i.category === category) &&
     (status === 'Todas as situações' || i.status === status) &&
     `${i.title} ${i.description ?? ''} ${i.address} ${i.category} ${i.subcategory ?? ''}`.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')),
   ).sort((a, b) => sort === 'supported' ? b.likes.length - a.likes.length : b.createdAt.localeCompare(a.createdAt)), [issues, category, status, query, sort]);
   const visible = useMemo(() => filtered.filter(i => !mapReady || !bounds || inBounds(i, bounds)), [filtered, mapReady, bounds]);
-  function changeUser(next: UserId) { setUserId(next); setPlacing(false); setProfileId(undefined); setRankingOpen(false); try { localStorage.setItem('like-cidade-user', next); } catch { /* The demo works without localStorage. */ } setToast(`Agora você está explorando como ${displayName(next,PEOPLE[next].name)} · ${PEOPLE[next].role}.`); }
+  function changeUser(next: UserId) { setUserId(next); setWorkspaceMode(next==='admin'?'admin':PEOPLE[next].type==='agency'?'service':'map'); setSelectedId(undefined); setServiceIssueId(undefined); setPlacing(false); setProfileId(undefined); setRankingOpen(false); try { localStorage.setItem('like-cidade-user', next); } catch { /* The demo works without localStorage. */ } setToast(`Agora você está explorando como ${displayName(next,PEOPLE[next].name)} · ${PEOPLE[next].role}.`); }
   function openIssue(issue: Issue) { setSelectedId(issue.id); setCenter({ lat: issue.lat, lng: issue.lng }); }
   async function mutate<T extends IssueSnapshot>(action: () => Promise<T>): Promise<T> {
     if (mutationPending.current) throw new Error('Aguarde a ação anterior terminar.');
@@ -81,25 +85,22 @@ export default function App() {
     const snapshot = await mutate(() => createSharedIssue(value, userId));
     setDraft(undefined); setPlacing(false); setQuery(''); setCategory('Todas as categorias'); setStatus('Todas as situações'); setCenter({ lat: value.lat, lng: value.lng }); setSelectedId(snapshot.createdId); setToast('Relato publicado para todos!');
   }
-  function changeStatus(id: string, next: Status) {
-    if (!canManage(role) || !STATUSES.includes(next)) return;
-    void mutate(() => setIssueStatus(id, userId, next)).then(() => setToast('Situação atualizada para todos.')).catch(() => {});
-  }
   function deleteIssue(id: string) {
     if (role !== 'admin') return;
     void mutate(() => removeSharedIssue(id, userId)).then(() => { setSelectedId(undefined); setConfirmDelete(undefined); setToast('Relato removido da demonstração compartilhada.'); }).catch(() => {});
   }
-  function beginReport() { if (role === 'agency') return; if (mapReady) { setMobileView('map'); setPlacing(true); } else setDraft(userLocation ?? center); }
+  function beginReport() { if (role === 'agency') return; setWorkspaceMode('map'); if (mapReady) { setMobileView('map'); setPlacing(true); } else setDraft(userLocation ?? center); }
 
   return <div className="app-shell">
     <header className="app-header">
       <div className="header-branding"><a href="/" className="brand" aria-label="Like Cidade, início"><img src="/favicon.png?v=2" alt="" /><span><b>Like</b> <b>Cidade</b></span></a>
       <div className="header-divider" /><span className="header-tagline">Quem curte, cuida!</span></div>
-      <div className="header-location" role="status" aria-live="polite" aria-busy={mapCity.loading} aria-label="Cidade no centro do mapa" title={mapCity.loading ? 'Identificando a cidade no centro do mapa…' : mapCity.available ? mapCity.label : 'Não foi possível identificar a cidade. Você pode continuar explorando o mapa.'}>
+      {activeMode==='map'?<>      <div className="header-location" role="status" aria-live="polite" aria-busy={mapCity.loading} aria-label="Cidade no centro do mapa" title={mapCity.loading ? 'Identificando a cidade no centro do mapa…' : mapCity.available ? mapCity.label : 'Não foi possível identificar a cidade. Você pode continuar explorando o mapa.'}>
         {mapCity.loading ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> : <MapPin size={15} aria-hidden="true" />}<span>{mapCity.loading && !mapCity.available ? 'Identificando cidade…' : mapCity.label}</span>
       </div>
+</>:<div className="header-location"><Building2 size={15}/><span>{activeMode==='admin'?'Administração da plataforma':'Central de atendimento'}</span></div>}
       <div className="header-actions">
-        {role !== 'agency' && <button className="button-primary header-report-button" aria-label="Reportar algo" title="Reportar algo" onClick={beginReport} disabled={!hydrated || placing || saving}><Plus size={19} /><span>Reportar algo</span></button>}
+        {activeMode==='map' && role !== 'agency' && <button className="button-primary header-report-button" aria-label="Reportar algo" title="Reportar algo" onClick={beginReport} disabled={!hydrated || placing || saving}><Plus size={19} /><span>Reportar algo</span></button>}
         <button className="ranking-header-button" aria-label="Ranking de moradores" title="Ranking de moradores" onClick={()=>setRankingOpen(true)}><Trophy size={18}/><span>Ranking</span></button>
         <button className="help-button" aria-label="Como funciona" onClick={() => setHelp(true)}><CircleHelp size={18} /><span>Como funciona</span></button><span className="demo-label">DEMONSTRAÇÃO</span>
         <button type="button" className="theme-toggle" aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} onClick={toggleTheme}>
@@ -109,6 +110,8 @@ export default function App() {
       </div>
     </header>
     {(loadError || connection === 'reconnecting') && <div className="connection-notice" role="status"><span>{loadError ? 'Sem conexão com o servidor. Seus dados salvos continuam no banco.' : 'Reconectando as atualizações em tempo real…'}</span><button onClick={refresh}>Tentar novamente</button></div>}
+    {capabilities.service&&<nav className="workspace-navigation" aria-label="Áreas do Like Cidade"><button aria-current={activeMode==='map'?'page':undefined} onClick={()=>{setWorkspaceMode('map');setServiceIssueId(undefined);}}><MapIcon size={16}/>Mapa público</button><button aria-current={activeMode==='service'?'page':undefined} onClick={()=>{setWorkspaceMode('service');setServiceIssueId(undefined);}}><ClipboardList size={16}/>Atendimento</button>{capabilities.admin&&<button aria-current={activeMode==='admin'?'page':undefined} onClick={()=>{setWorkspaceMode('admin');setServiceIssueId(undefined);}}><ShieldCheck size={16}/>Administração</button>}</nav>}
+    {activeMode==='map'?<>
     <main className="workspace">
       <aside className={`sidebar ${mobileView === 'list' ? 'mobile-active' : ''}`} aria-label="Lista de ocorrências">
         <div className="sidebar-intro"><h1>Perto de você<span className="text-coral">.</span></h1></div>
@@ -131,6 +134,7 @@ export default function App() {
       <button aria-pressed={mobileView === 'list'} onClick={() => setMobileView('list')}><List size={18} />Relatos<span>{visible.length}</span></button>
       {role !== 'agency' && <button type="button" className="button-primary mobile-report-button" aria-label="Reportar algo" title="Reportar algo" onClick={beginReport} disabled={!hydrated || placing || saving}><Plus size={22} aria-hidden="true" /></button>}
     </nav>
+    </>:<ManagementPanel key={`${userId}:${activeMode}`} userId={userId} revision={revision} section={activeMode==='admin'?'admin':'service'} initialIssueId={serviceIssueId} onSnapshot={applySnapshot}/> }
     {toast && <div className="toast" role="status"><Check size={18} /><span>{toast}</span><button aria-label="Fechar aviso" onClick={() => setToast('')}><X size={15} /></button></div>}
     {draft && <IssueForm position={draft} onClose={() => setDraft(undefined)} onSave={createIssue} onLocate={locate} locating={locating} />}
     {selected && <Modal title="Detalhes do relato" onClose={() => setSelectedId(undefined)} wide>
@@ -139,7 +143,7 @@ export default function App() {
         <div className="detail-location"><MapPin size={16} /><span>{selected.address}</span></div>
       </div><div className="detail-content"><div className="flex justify-between items-center gap-3"><StatusBadge status={selected.status} />{selected.sample && <span className="text-xs text-muted">Exemplo fictício</span>}</div><h2>{selected.title}</h2>{selected.subcategory && <p className="detail-subcategory"><CategoryIcon category={selected.category} size={15} /><span>{selected.category} · {selected.subcategory}</span></p>}{selected.sample && <p className="detail-description">Relato fictício para demonstração. A foto é ilustrativa e não comprova um problema neste local.</p>}{selected.photoCredit && <p className="photo-credit">Foto: {selected.photoCredit.author} · <a href={selected.photoCredit.sourceUrl} target="_blank" rel="noreferrer">Fonte</a> · <a href={selected.photoCredit.licenseUrl || selected.photoCredit.sourceUrl} target="_blank" rel="noreferrer">{selected.photoCredit.license}</a></p>}<p className="detail-meta"><UserRound size={13} /><button className="profile-inline-link" onClick={()=>setProfileId(selected.authorId)}>{displayName(selected.authorId, selected.author)}</button><span>·</span>{date(selected.createdAt)}</p>
         <button className={`support-button ${selected.likes.includes(userId) ? 'supported' : ''}`} disabled={saving || selected.authorId===userId || role!=='resident'} aria-pressed={selected.likes.includes(userId)} onClick={() => like(selected.id)}><Heart size={18} fill={selected.likes.includes(userId) ? 'currentColor' : 'none'} />{selected.authorId===userId ? 'Este relato é seu' : selected.likes.includes(userId) ? 'Você apoia este relato' : 'Também quero que resolvam'}<b>{selected.likes.length}</b></button>
-        {canManage(role) && <div className="agency-controls"><label><Building2 size={15} />Atualizar atendimento<select disabled={saving} aria-label="Situação do atendimento" value={selected.status} onChange={e => changeStatus(selected.id, e.target.value as Status)}>{STATUSES.map(s => <option key={s}>{s}</option>)}</select></label><small>Ação do perfil de demonstração. Sem vínculo oficial com uma instituição.</small></div>}
+        {selected.privateDetailsVisible && <button className="button-secondary service-open-button" onClick={()=>{setServiceIssueId(selected.id);setSelectedId(undefined);setWorkspaceMode('service');}}><Building2 size={16}/>Atender esta ocorrência</button>}
         <section className="detail-section"><h3><Clock3 size={16} />Histórico</h3><ol className="timeline">{selected.history.map((event, i) => <li key={`${event.createdAt}-${i}`}><strong>{event.label}</strong><span>{displayName(event.authorId, event.author)} · {date(event.createdAt)}</span></li>)}</ol></section>
         {selected.privateDetailsVisible && <section className="detail-section private-details"><h3><ShieldCheck size={16}/>Informações para o atendimento</h3><p className="private-details-hint">Visível somente à administração e ao órgão responsável.</p><p className="private-report-text">{selected.description || 'Nenhum comentário enviado no formulário.'}</p>{!!selected.comments?.length && <div className="legacy-private-notes"><h4>Registros anteriores da conversa</h4>{selected.comments.map(comment=><div key={comment.id}><strong>{displayName(comment.authorId,comment.author)} · {date(comment.createdAt)}</strong><p>{comment.text}</p></div>)}</div>}</section>}
         {role === 'admin' && <button className="delete-button" onClick={() => setConfirmDelete(selected.id)}><Trash2 size={15} />Remover relato</button>}

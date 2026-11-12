@@ -26,8 +26,9 @@ test('adding optional subcategories migrates an existing database without changi
   legacy.close();
   store = new IssueDatabase(path);
   try {
-    assert.equal(store.db.prepare('PRAGMA user_version').get()!.user_version, 5);
-    assert.deepEqual(JSON.parse(JSON.stringify(store.snapshot('admin'))), before);
+    assert.equal(store.db.prepare('PRAGMA user_version').get()!.user_version, 6);
+    const migrated=JSON.parse(JSON.stringify(store.snapshot('admin')));
+    assert.deepEqual(migrated.issues,before.issues);assert.deepEqual(migrated.profiles,before.profiles);assert.ok(migrated.revision>=before.revision);
     assert.deepEqual(Buffer.from(store.photo(id)!), photo);
     assert.equal(store.snapshot('admin').issues.find(issue => issue.id === id)!.subcategory, undefined);
     const created = store.create({ ...value, subcategory: 'Piso desnivelado' }, 'resident');

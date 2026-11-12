@@ -128,3 +128,7 @@ Abra **Meu perfil** no menu de usuário para editar apelido, foto, município e 
 O ranking de moradores está disponível no topo e no menu de perfil, com filtros por cidade, semana/mês/total e tipo de contribuição. Para preencher os cinco moradores fictícios com pontuações simuladas, execute `npm run build` e `npm run seed:ranking`. A carga é idempotente e mantém as ações fictícias separadas dos pontos reais; o perfil e o extrato identificam essa distinção. Faça um backup antes da primeira carga.
 
 A conversa pública foi removida. O comentário opcional do formulário aparece somente para Admin e para o representante atribuído à cidade/categoria do relato (Marcos: Itajaí nesta demonstração). As respostas da API também omitem esse conteúdo para moradores/visitantes; comentários antigos são preservados apenas no atendimento. Como ainda há troca livre de perfis fictícios, não insira dados sigilosos: a restrição real dependerá da autenticação WorkOS.
+
+### Administração e atendimento das prefeituras
+
+Admin pode selecionar cidades com relatos, escolher qualquer usuário e atribuir categorias/órgãos. Responsáveis ganham uma central com lista de pendências, filtros, indicadores, prioridade, histórico e comentários internos. Mudar para **Resolvida** exige foto de evidência; o atendimento respeita cidade e categoria tanto na interface quanto na API. Veja [docs/municipal-management.md](docs/municipal-management.md) para regras, auditoria, preparação para WorkOS e limites do protótipo.

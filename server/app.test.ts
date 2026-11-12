@@ -65,7 +65,7 @@ test('independent users share atomic supports and photos survive a server restar
   const firstSupport = await (await api.request(`/issues/${id}/support`, 'PUT', { userId: 'resident-felipe', supported: true })).json() as IssueSnapshot;
   const repeatSupport = await (await api.request(`/issues/${id}/support`, 'PUT', { userId: 'resident-felipe', supported: true })).json() as IssueSnapshot;
   assert.equal(repeatSupport.revision, firstSupport.revision);
-  assert.equal((await api.request(`/issues/${id}/status`, 'PATCH', { userId: 'agency', status: 'Em andamento' })).status, 200);
+  assert.equal((await api.request(`/issues/${id}/status`, 'PATCH', { userId: 'agency', status: 'Em andamento', expectedStatus:'Registrada',expectedVersion:0,comment:'Atendimento iniciado' })).status, 200);
   await api.close(); api = await start(path);
   const latest = await (await api.request('/issues')).json() as IssueSnapshot;
   const issue = latest.issues.find(issue => issue.id === id)!;
@@ -109,7 +109,7 @@ test('SSE notifies two open clients of every change and catches up after reconne
   assert.equal((await second.next()).revision, created.revision);
   for (const [path, method, value] of [
     [`/issues/${created.createdId}/support`, 'PUT', { userId: 'resident-felipe', supported: true }],
-    [`/issues/${created.createdId}/status`, 'PATCH', { userId: 'agency', status: 'Resolvida' }],
+    [`/issues/${created.createdId}/status`, 'PATCH', { userId: 'agency', status: 'Em andamento',expectedStatus:'Registrada',expectedVersion:0,comment:'Atendimento iniciado' }],
     [`/issues/${created.createdId}`, 'DELETE', { userId: 'admin' }],
   ] as const) {
     const response = await api.request(path, method, value); assert.ok(response.ok);
@@ -131,7 +131,7 @@ test('server validates data, enforces the selected demo role, and rejects stale 
     assert.equal((await api.request('/issues', 'POST', { ...payload, ...invalid })).status, 400);
   }
   assert.equal((await api.request('/issues', 'POST', { ...payload, userId: 'agency' })).status, 403);
-  assert.equal((await api.request('/issues/example-0/status', 'PATCH', { userId: 'resident', status: 'Resolvida' })).status, 403);
+  assert.equal((await api.request('/issues/example-0/status', 'PATCH', { userId: 'resident', status: 'Em andamento',expectedStatus:'Registrada',expectedVersion:0,comment:'Atendimento iniciado' })).status, 403);
   assert.equal((await api.request('/issues/example-0', 'DELETE', { userId: 'agency' })).status, 403);
   assert.equal((await api.request('/issues/example-0/support', 'PUT', { userId: 'resident', supported: 'yes' })).status, 400);
   assert.equal((await (await api.request('/issues')).json() as IssueSnapshot).revision, initial.revision);

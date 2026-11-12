@@ -43,7 +43,7 @@ test('all read/write response paths redact notes and the old conversation endpoi
   for(const [path,method,value] of [
     [`/issues/${id}/support`,'PUT',{userId:'resident-felipe',supported:true}],
     ['/profiles/resident','PATCH',{userId:'resident',nickname:'Rafa',city:'Itajaí',bio:''}],
-    [`/issues/${id}/status`,'PATCH',{userId:'agency',status:'Em andamento'}],
+    [`/issues/${id}/status`,'PATCH',{userId:'agency',status:'Em andamento',expectedStatus:'Registrada',expectedVersion:0,comment:'Comentário interno de teste'}],
   ] as const){const response=await call(path,method,value);assert.equal(response.status,200);assert.ok(!(await response.text()).includes(privateText));}
   const before=await (await call('/issues')).json();
   for(const userId of ['resident','agency','admin'])assert.equal((await call(`/issues/${id}/comments`,'POST',{userId,text:'Novo comentário'})).status,410);

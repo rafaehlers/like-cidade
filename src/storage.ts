@@ -1,4 +1,4 @@
-import type { IssueSnapshot, NewIssue, Status, UserId } from './domain';
+import type { IssueSnapshot, NewIssue, UserId } from './domain';
 
 async function request<T = IssueSnapshot>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response;
@@ -15,7 +15,6 @@ const viewerHeaders = (userId:UserId) => ({'X-Demo-User':userId});
 export const loadIssues = (userId:UserId, signal?: AbortSignal) => request('/issues', { signal, headers:viewerHeaders(userId) });
 export const createSharedIssue = (value: NewIssue, userId: UserId) => request<IssueSnapshot & { createdId: string }>('/issues', { method: 'POST', headers:viewerHeaders(userId), body: JSON.stringify({ ...value, userId }) });
 export const setIssueSupport = (id: string, userId: UserId, supported: boolean) => request(`/issues/${encodeURIComponent(id)}/support`, { method: 'PUT', headers:viewerHeaders(userId), body: JSON.stringify({ userId, supported }) });
-export const setIssueStatus = (id: string, userId: UserId, status: Status) => request(`/issues/${encodeURIComponent(id)}/status`, { method: 'PATCH', headers:viewerHeaders(userId), body: JSON.stringify({ userId, status }) });
 export const removeSharedIssue = (id: string, userId: UserId) => request(`/issues/${encodeURIComponent(id)}`, { method: 'DELETE', headers:viewerHeaders(userId), body: JSON.stringify({ userId }) });
 
 export async function preparePhoto(file: File, maxDimension = 1400): Promise<string> {
@@ -46,3 +45,7 @@ export const saveProfile = (id: UserId, value: import('./profiles').ProfileUpdat
 export const prepareAvatar = (file: File) => preparePhoto(file, 320);
 
 export const loadRanking = (params: {period:import('./ranking').RankingPeriod;city:import('./profiles').PilotCity|'all';theme:import('./ranking').RankingTheme;userId:UserId},signal?:AbortSignal)=>request<import('./ranking').RankingSnapshot>(`/ranking?${new URLSearchParams(params)}`,{signal});
+
+export const loadManagement=(userId:UserId,signal?:AbortSignal)=>request<import('./management').ManagementSnapshot>('/management',{headers:viewerHeaders(userId),signal});
+export const saveAssignments=(userId:UserId,value:import('./management').AssignmentUpdate)=>request<IssueSnapshot & {management:import('./management').ManagementSnapshot}>('/management/assignments',{method:'PUT',headers:viewerHeaders(userId),body:JSON.stringify({...value,userId})});
+export const saveServiceEvent=(userId:UserId,id:string,value:import('./management').ServiceUpdate)=>request<IssueSnapshot & {management:import('./management').ManagementSnapshot}>(`/management/issues/${encodeURIComponent(id)}/events`,{method:'POST',headers:viewerHeaders(userId),body:JSON.stringify({...value,userId})});
