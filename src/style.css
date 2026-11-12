@@ -713,3 +713,26 @@
 .service-responsibles p { display:flex;flex-wrap:wrap;gap:5px 10px;margin:7px 0;font-size:11px;line-height:1.7; }
 .service-responsibles strong { font-weight:500; }
 .service-responsibles span { color:var(--text-muted); }
+
+.service-priority-criteria { margin-top:20px;border:1px solid var(--border);border-radius:12px;background:var(--surface);font-size:12px; }
+.service-priority-criteria>summary { display:flex;align-items:center;gap:9px;cursor:pointer;padding:16px 20px;color:var(--accent);font-weight:600;list-style:none; }
+.service-priority-criteria>summary::-webkit-details-marker { display:none; }
+.service-priority-criteria>summary>span { flex:1; }
+.service-priority-criteria>summary>svg:last-child { transition:transform .15s; }
+.service-priority-criteria[open]>summary>svg:last-child { transform:rotate(180deg); }
+.service-priority-criteria>summary:focus-visible { outline:2px solid var(--accent);outline-offset:3px;border-radius:10px; }
+.priority-criteria-content { border-top:1px solid var(--border-soft);padding:18px 20px 20px;color:var(--text-muted);line-height:1.8; }
+.priority-criteria-content>p { margin-bottom:14px;max-width:1000px; }
+.priority-criteria-content ol { list-style:decimal;padding-left:22px;margin-bottom:14px; }
+.priority-criteria-content li { padding-left:3px;margin-bottom:5px; }
+.priority-criteria-content strong { color:var(--text-primary);font-weight:600; }
+.priority-criteria-content table { width:100%;border-collapse:collapse;text-align:left; }
+.priority-criteria-content th,.priority-criteria-content td { padding:12px 14px;border:1px solid var(--border);vertical-align:top; }
+.priority-criteria-content thead th { background:var(--surface-subtle);color:var(--text-primary);font-weight:600; }
+.priority-criteria-content tbody th { width:160px; }
+@media(max-width:760px) {
+ .service-priority-criteria>summary { padding:15px 16px; }
+ .priority-criteria-content { padding:16px;font-size:11px; }
+ .priority-criteria-content th,.priority-criteria-content td { padding:10px;overflow-wrap:anywhere; }
+ .priority-criteria-content tbody th { width:90px; }
+}

@@ -22,7 +22,7 @@ O representante entra na central por padrão; contas de moradores atribuídas ga
 - prioridade automática ou manual, com a justificativa registrada no comentário;
 - indicadores por cidade e categorias autorizadas: pendências, proporção informada como resolvida, tempo médio observado até esse status e frequência por categoria.
 
-A prioridade automática segue os critérios de risco, dez apoios e trinta dias em aberto, limitada a Alta. A taxonomia atual reúne drenagem/água/esgoto e árvores em categorias mais amplas; acessibilidade usa as subcategorias já definidas. As datas dos filtros e do histórico usam America/Sao_Paulo. Bairro/cidade são reconhecidos da referência já disponível; não se inventam bairros ausentes. Relatos sem cidade reconhecida são atendidos somente por Admin e não podem gerar atribuições por suposição. A futura produção deverá usar município/bairro estruturados e validados pela localização.
+A prioridade automática segue os critérios de risco, dez apoios e trinta dias em aberto, limitada a Alta. A consulta dos critérios fica em uma seção recolhível no CRM, acima da fila de atendimento; não aparece no mapa público nem no ranking dos moradores. A taxonomia atual reúne drenagem/água/esgoto e árvores em categorias mais amplas; acessibilidade usa as subcategorias já definidas. As datas dos filtros e do histórico usam America/Sao_Paulo. Bairro/cidade são reconhecidos da referência já disponível; não se inventam bairros ausentes. Relatos sem cidade reconhecida são atendidos somente por Admin e não podem gerar atribuições por suposição. A futura produção deverá usar município/bairro estruturados e validados pela localização.
 
 ## Histórico, evidência e concorrência
 
