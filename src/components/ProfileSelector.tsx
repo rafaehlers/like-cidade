@@ -46,7 +46,9 @@ export default function ProfileSelector({ value, disabled, onChange, profiles, o
   }
 
   return <div className="profile-selector" ref={root} onBlur={event => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
+    // Safari can blur a button with no next focus target before delivering its click.
+    // Pointer events already close outside clicks; only close here for a known focus exit.
+    if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false);
   }}>
     <button type="button" ref={trigger} className="profile-trigger" disabled={disabled}
       aria-label={`Perfil atual: ${nickname} · ${person.role}`} aria-haspopup="menu" aria-expanded={open} aria-controls={menuId}
