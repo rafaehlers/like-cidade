@@ -37,18 +37,18 @@ Quando retomado, o login Google pelo WorkOS deve usar sessão verificada no serv
 
 ## Acessibilidade: problemas concretos
 
-Contrastes calculados pela luminância relativa das cores em `src/style.css`, sem arredondamento para aprovação. Para texto pequeno, o critério 1.4.3 exige pelo menos 4,5:1:
+Contrastes calculados pela luminância relativa das cores em `src/style.css`, sem arredondamento para aprovação. Para texto pequeno, o critério 1.4.3 exige pelo menos 4,5:1. Os pares abaixo foram ajustados para atingir esse limite no tema claro:
 
 | Elemento no tema claro | Cores texto/fundo | Contraste aproximado |
 | --- | --- | --- |
-| Texto secundário sobre branco | #7b817f / #ffffff | 3,97:1 |
-| Texto branco do botão principal | #ffffff / #e8423b | 3,98:1 |
-| Registrada | #b18455 / #fcf0e7 | 2,98:1 |
-| Em análise | #8a6bb1 / #f2edf8 | 3,79:1 |
-| Em andamento | #6489b8 / #edf3fd | 3,24:1 |
-| Resolvida | #658958 / #edf5eb | 3,58:1 |
+| Texto secundário sobre branco | #6b716f / #ffffff | 4,98:1 |
+| Texto branco do botão principal | #ffffff / #c92f29 | 5,35:1 |
+| Registrada | #80562f / #fcf0e7 | 5,70:1 |
+| Em análise | #684786 / #f2edf8 | 6,44:1 |
+| Em andamento | #426487 / #edf3fd | 5,53:1 |
+| Resolvida | #4c6b3d / #edf5eb | 5,42:1 |
 
-Essas combinações precisam de ajuste antes de declarar AA. O pin cinza novo tem contraste branco/cinza de 6,89:1 e usa ícone/texto acessível, sem depender apenas da cor. A revisão completa deve incluir estados de erro/carregamento, campos de arquivo, edição de perfil, abas do perfil, acesso à localização/pin sem gestos de precisão e retorno de foco após fechar os modais. A existência de lista alternativa ao mapa ajuda, mas não comprova que todos os fluxos sejam acessíveis.
+Uma verificação automatizada em `src/presentation.test.ts` protege o limite dos pares ajustados; isso não certifica conformidade integral. O pin cinza novo tem contraste branco/cinza de 6,89:1 e usa ícone/texto acessível, sem depender apenas da cor. A revisão completa ainda deve incluir estados de erro/carregamento, campos de arquivo, edição de perfil, abas do perfil, acesso à localização/pin sem gestos de precisão e retorno de foco após fechar os modais. A existência de lista alternativa ao mapa ajuda, mas não comprova que todos os fluxos sejam acessíveis.
 
 Referência normativa: [WCAG 2.1 — W3C](https://www.w3.org/TR/WCAG21/), especialmente 1.4.3 (contraste), 1.4.10 (reflow), 2.1.1 (teclado), 2.4.3 (ordem do foco), 2.4.7 (foco visível), 3.3.1/3.3.2 (erros e instruções) e 4.1.2/4.1.3 (nome/papel/valor e mensagens de status).
 
