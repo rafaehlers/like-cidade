@@ -157,6 +157,7 @@ export function createApp({ databasePath, staticDirectory, publicSiteUrl = proce
     const subcategory = typeof data.subcategory === 'string' ? data.subcategory.trim() || undefined : data.subcategory ?? undefined;
     if (subcategory !== undefined && !isSubcategory(category, subcategory)) throw new RequestError(400, 'Escolha uma subcategoria válida para a categoria selecionada.');
     if (typeof data.lat !== 'number' || typeof data.lng !== 'number' || !validPosition({ lat: data.lat, lng: data.lng })) throw new RequestError(400, 'Escolha um ponto válido no mapa.');
+    if (data.audio !== undefined) throw new RequestError(400, 'Envie somente o texto revisado; a plataforma não armazena gravações de áudio.');
     let photo: Buffer | undefined;
     if (data.photo !== undefined) {
       const match = typeof data.photo === 'string' && /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(data.photo);

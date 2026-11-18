@@ -55,6 +55,7 @@ export default function App() {
   const [confirmDelete, setConfirmDelete] = useState<string>();
   const [toast, setToast] = useState('');
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map');
+  const reportTrigger = useRef<HTMLButtonElement | null>(null);
   const didLocate = useRef(!!selectedId);
   const focusedIssue = useRef<string|undefined>(undefined);
   const selected = issues.find(i => i.id === selectedId);
@@ -102,7 +103,9 @@ export default function App() {
     if (role !== 'admin') return;
     void mutate(() => removeSharedIssue(id, userId)).then(() => { setSelectedId(undefined); setConfirmDelete(undefined); setToast('Relato removido.'); }).catch(() => {});
   }
-  function beginReport() { if (role === 'agency') return; setWorkspaceMode('map'); if (mapReady) { setMobileView('map'); setPlacing(true); } else setDraft(userLocation ?? center); }
+  function beginReport(trigger?: HTMLButtonElement) { if (role === 'agency') return; setWorkspaceMode('map'); if (mapReady) { reportTrigger.current = trigger ?? null; setMobileView('map'); setPlacing(true); } else setDraft(userLocation ?? center); }
+  function continueReportWithoutMap() { setPlacing(false); setDraft(userLocation ?? mapCenter ?? center); }
+  function cancelReportPlacement() { setPlacing(false); requestAnimationFrame(() => reportTrigger.current?.focus()); }
 
   return <div className="app-shell">
     <header className="app-header">
@@ -138,13 +141,13 @@ export default function App() {
         <div className="sidebar-bottom"><span className="flex gap-1.5 items-center"><ShieldCheck size={13} />{loadError ? 'Sem conexão com o servidor' : connection === 'connected' ? 'Atualizações em tempo real' : 'Conectando ao servidor…'}</span><LegalLinks /></div>
       </aside>
       <div className={`map-workspace ${mobileView === 'map' ? 'mobile-active' : ''}`}>
-        <MapView canReport={role!=='agency'} reportDisabled={!hydrated || placing || saving} onReport={beginReport} theme={theme} issues={filtered} selectedId={selectedId} center={center} userLocation={userLocation} placing={placing} onSelect={id => setSelectedId(id)} onPick={p => { setPlacing(false); setDraft(p); }} onBounds={setBounds} onCenterChange={setMapCenter} onLocate={() => { void locate(); }} locating={locating} onCancelPlace={() => setPlacing(false)} onReady={setMapReady} />
+        <MapView canReport={role!=='agency'} reportDisabled={!hydrated || placing || saving} onReport={beginReport} onContinueWithoutMap={continueReportWithoutMap} theme={theme} issues={filtered} selectedId={selectedId} center={center} userLocation={userLocation} placing={placing} onSelect={id => setSelectedId(id)} onPick={p => { setPlacing(false); setDraft(p); }} onBounds={setBounds} onCenterChange={setMapCenter} onLocate={() => { void locate(); }} locating={locating} onCancelPlace={cancelReportPlacement} onReady={setMapReady} />
       </div>
     </main>
     <nav className="mobile-tabs" aria-label="Visualização">
       <button aria-pressed={mobileView === 'map'} onClick={() => setMobileView('map')}><MapIcon size={18} />Mapa</button>
       <button aria-pressed={mobileView === 'list'} onClick={() => setMobileView('list')}><List size={18} />Relatos<span>{visible.length}</span></button>
-      {role !== 'agency' && <button type="button" className="button-primary mobile-report-button" aria-label="Reportar algo" title="Reportar algo" onClick={beginReport} disabled={!hydrated || placing || saving}><Plus size={22} aria-hidden="true" /></button>}
+    {role !== 'agency' && <button type="button" className="button-primary mobile-report-button" aria-label="Reportar algo" title="Reportar algo" onClick={event => beginReport(event.currentTarget)} disabled={!hydrated || placing || saving}><Plus size={22} aria-hidden="true" /></button>}
     </nav>
     </>:<ManagementPanel key={`${userId}:${activeMode}`} userId={userId} revision={revision} section={activeMode==='admin'?'admin':'service'} initialIssueId={serviceIssueId} onSnapshot={applySnapshot}/> }
     {toast && <div className="toast" role="status"><Check size={18} /><span>{toast}</span><button aria-label="Fechar aviso" onClick={() => setToast('')}><X size={15} /></button></div>}

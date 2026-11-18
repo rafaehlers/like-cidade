@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { seedIssues } from './domain';
 import { displayIssue, displayPointEntry } from './presentation';
@@ -43,4 +44,68 @@ test('ledger presentation keeps amounts, balances and provenance intact', () => 
     category:'Calçada',createdAt:'2026-11-12T00:00:00Z'};
   assert.deepEqual(displayPointEntry(entry), {...entry,issueTitle:'Relato — Itajaí',reason:'Ocorrência registrada'});
   assert.equal(displayPointEntry({...entry,demo:false}).reason,entry.reason);
+});
+
+test('application text colors meet WCAG AA contrast', async () => {
+  const [css, issueForm] = await Promise.all([
+    readFile(new URL('./style.css', import.meta.url), 'utf8'),
+    readFile(new URL('./components/IssueForm.tsx', import.meta.url), 'utf8'),
+  ]);
+  const rule = (selector: string) => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const block = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1];
+    assert.ok(block, `Missing CSS rule: ${selector}`);
+    return block;
+  };
+  const color = (block: string, property: string) => {
+    const value = block.match(new RegExp(`(?:^|;)\\s*${property}\\s*:\\s*(#[\\da-f]{6})`, 'i'))?.[1];
+    assert.ok(value, `Missing ${property} color`);
+    return value;
+  };
+  const luminance = (hex: string) => {
+    const channels = [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16) / 255);
+    const [red, green, blue] = channels.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  };
+  const assertAA = (label: string, foreground: string, background: string) => {
+    const [lighter, darker] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+    const contrast = (lighter + 0.05) / (darker + 0.05);
+    assert.ok(contrast >= 4.5, `${label} contrast is ${contrast.toFixed(2)}:1`);
+  };
+
+  const root = rule(':root');
+  const muted = color(root, '--text-muted');
+  assertAA('Secondary text on white', muted, '#ffffff');
+  assertAA('Secondary text on the page', muted, color(root, '--page'));
+
+  for (let index = 0; index < 6; index++) {
+    const category = rule(`.category-${index}`);
+    const foreground = color(category, 'color');
+    assertAA(`Category ${index} label on white`, foreground, '#ffffff');
+    assertAA(`Category ${index} icon on its background`, foreground, color(category, 'background-color'));
+  }
+
+  const coralText = color(root, '--coral-text');
+  assertAA('Liked text on white', coralText, '#ffffff');
+  assertAA('Liked text on the supported button', coralText, '#fef2f2');
+  assert.match(rule('.like-button:hover, .is-liked'), /color:\s*var\(--coral-text\)/);
+  assert.match(rule('.support-button.supported'), /color:\s*var\(--coral-text\)/);
+  assert.match(issueForm, /className="text-coral-contrast"/);
+  assert.match(rule('.text-coral-contrast'), /color:\s*var\(--coral-text\)/);
+
+  const darkRoot = rule(':root[data-theme="dark"]');
+  const darkCoralText = color(darkRoot, '--coral-text');
+  assertAA('Dark theme liked text on a card', darkCoralText, color(darkRoot, '--surface'));
+  assertAA('Dark theme liked text on the supported button', darkCoralText, '#3b2725');
+
+  for (const selector of ['.status-0', '.status-1', '.status-2', '.status-3']) {
+    const badge = rule(selector);
+    assertAA(selector, color(badge, 'color'), color(badge, 'background'));
+  }
+
+  const actionColor = css.match(/--color-coral-action:\s*(#[\da-f]{6})/i)?.[1];
+  assert.ok(actionColor, 'Missing accessible action color');
+  assert.match(rule('.button-primary'), /\bbg-coral-action\b/);
+  assert.match(rule('.mobile-tabs>.mobile-report-button'), /var\(--color-coral-action\)/);
+  assertAA('Primary button text', '#ffffff', actionColor);
 });
