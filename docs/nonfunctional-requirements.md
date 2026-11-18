@@ -23,7 +23,7 @@ Revisão em 12/11/2026. Escopo autorizado nesta etapa: implementar o Graveyard e
 
 ## LGPD: decisões e trabalho necessário
 
-Inventário mínimo observado: apelido, município, apresentação e foto do perfil; autoria, coordenadas, referência, título e foto do relato; comentário do morador, evidências do atendimento, histórico, apoios e pontuação. O título, ponto do problema, referência, foto e autoria podem ser públicos. A localização do dispositivo centraliza o mapa; ao publicar, as coordenadas do ponto escolhido passam a fazer parte do relato. O Google recebe dados necessários ao mapa/geocodificação. A consulta de informações municipais usa Wikipédia/Wikidata no servidor.
+Inventário mínimo observado: apelido, município, apresentação e foto do perfil; autoria, coordenadas, referência, título e foto do relato; texto ditado opcional; comentário do morador, evidências do atendimento, histórico, apoios e pontuação. O navegador pode enviar a fala a um provedor de reconhecimento de voz; a plataforma recebe e armazena somente o texto, sujeito às mesmas restrições do comentário privado. Não há garantia sobre a retenção pelo provedor do navegador. A pessoa deve revisar a transcrição e pode optar por digitar. **Na demonstração atual, os perfis podem ser trocados sem verificação, portanto não há garantia real de confidencialidade e não se devem enviar dados reais.** O título, ponto do problema, referência, foto e autoria podem ser públicos. A localização do dispositivo centraliza o mapa; ao publicar, as coordenadas do ponto escolhido passam a fazer parte do relato. O Google recebe dados necessários ao mapa/geocodificação. A consulta de informações municipais usa Wikipédia/Wikidata no servidor.
 
 Antes de aceitar dados reais, definir controlador e contato, finalidades e bases legais, fornecedores/transferências, prazos de retenção e política de backups; publicar aviso de privacidade; implantar autenticação e atribuições verificadas; criar procedimento de consulta/correção/exportação/eliminação ou anonimização quando aplicável. Não presumir que um checkbox de consentimento resolve todas as finalidades. Auditoria e ledger imutáveis precisam de política de minimização e retenção compatível com os direitos dos titulares.
 
@@ -47,8 +47,11 @@ Contrastes calculados pela luminância relativa das cores em `src/style.css`, se
 | Em análise | #684786 / #f2edf8 | 6,44:1 |
 | Em andamento | #426487 / #edf3fd | 5,53:1 |
 | Resolvida | #4c6b3d / #edf5eb | 5,42:1 |
+| Categorias (sobre branco) | #715d3c, #7b5b08, #526b48, #78553f, #32677e, #4d684f / #ffffff | 5,91:1–6,63:1 |
+| Apoio na lista e campos obrigatórios | #c92f29 / #ffffff | 5,35:1 |
+| Apoio ativo nos detalhes | #c92f29 / #fef2f2 | 4,89:1 |
 
-Uma verificação automatizada em `src/presentation.test.ts` protege o limite dos pares ajustados; isso não certifica conformidade integral. O pin cinza novo tem contraste branco/cinza de 6,89:1 e usa ícone/texto acessível, sem depender apenas da cor. A revisão completa ainda deve incluir estados de erro/carregamento, campos de arquivo, edição de perfil, abas do perfil, acesso à localização/pin sem gestos de precisão e retorno de foco após fechar os modais. A existência de lista alternativa ao mapa ajuda, mas não comprova que todos os fluxos sejam acessíveis.
+Uma verificação automatizada em `src/presentation.test.ts` protege o limite dos pares ajustados; isso não certifica conformidade integral. O pin cinza novo tem contraste branco/cinza de 6,89:1 e usa ícone/texto acessível, sem depender apenas da cor. Na criação de relatos, é possível selecionar o local no mapa ou continuar sem ele e usar GPS ou editar coordenadas no formulário. Ainda faltam testes manuais de teclado e leitor de tela para confirmar todo o fluxo, além da revisão dos estados de erro/carregamento, campos de arquivo, edição de perfil, abas do perfil e retorno de foco após fechar os modais. A existência de lista alternativa ao mapa ajuda, mas não comprova que todos os fluxos sejam acessíveis.
 
 Referência normativa: [WCAG 2.1 — W3C](https://www.w3.org/TR/WCAG21/), especialmente 1.4.3 (contraste), 1.4.10 (reflow), 2.1.1 (teclado), 2.4.3 (ordem do foco), 2.4.7 (foco visível), 3.3.1/3.3.2 (erros e instruções) e 4.1.2/4.1.3 (nome/papel/valor e mensagens de status).
 

@@ -46,8 +46,11 @@ test('ledger presentation keeps amounts, balances and provenance intact', () => 
   assert.equal(displayPointEntry({...entry,demo:false}).reason,entry.reason);
 });
 
-test('light theme status and action text meet WCAG AA contrast', async () => {
-  const css = await readFile(new URL('./style.css', import.meta.url), 'utf8');
+test('application text colors meet WCAG AA contrast', async () => {
+  const [css, issueForm] = await Promise.all([
+    readFile(new URL('./style.css', import.meta.url), 'utf8'),
+    readFile(new URL('./components/IssueForm.tsx', import.meta.url), 'utf8'),
+  ]);
   const rule = (selector: string) => {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const block = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1];
@@ -74,6 +77,26 @@ test('light theme status and action text meet WCAG AA contrast', async () => {
   const muted = color(root, '--text-muted');
   assertAA('Secondary text on white', muted, '#ffffff');
   assertAA('Secondary text on the page', muted, color(root, '--page'));
+
+  for (let index = 0; index < 6; index++) {
+    const category = rule(`.category-${index}`);
+    const foreground = color(category, 'color');
+    assertAA(`Category ${index} label on white`, foreground, '#ffffff');
+    assertAA(`Category ${index} icon on its background`, foreground, color(category, 'background-color'));
+  }
+
+  const coralText = color(root, '--coral-text');
+  assertAA('Liked text on white', coralText, '#ffffff');
+  assertAA('Liked text on the supported button', coralText, '#fef2f2');
+  assert.match(rule('.like-button:hover, .is-liked'), /color:\s*var\(--coral-text\)/);
+  assert.match(rule('.support-button.supported'), /color:\s*var\(--coral-text\)/);
+  assert.match(issueForm, /className="text-coral-contrast"/);
+  assert.match(rule('.text-coral-contrast'), /color:\s*var\(--coral-text\)/);
+
+  const darkRoot = rule(':root[data-theme="dark"]');
+  const darkCoralText = color(darkRoot, '--coral-text');
+  assertAA('Dark theme liked text on a card', darkCoralText, color(darkRoot, '--surface'));
+  assertAA('Dark theme liked text on the supported button', darkCoralText, '#3b2725');
 
   for (const selector of ['.status-0', '.status-1', '.status-2', '.status-3']) {
     const badge = rule(selector);

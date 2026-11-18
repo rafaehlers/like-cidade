@@ -13,7 +13,7 @@ import GraveyardIcon from './GraveyardIcon';
 const CLUSTERING_ENABLED = import.meta.env.VITE_MAP_CLUSTERING_ENABLED?.trim().toLowerCase() !== 'false';
 
 type Props = {
-  canReport: boolean; reportDisabled: boolean; onReport: () => void;
+  canReport: boolean; reportDisabled: boolean; onReport: (trigger: HTMLButtonElement) => void; onContinueWithoutMap: () => void;
   theme: Theme; issues: Issue[]; selectedId?: string; center: Position; userLocation?: Position;
   placing: boolean; onSelect: (id: string) => void; onPick: (p: Position) => void;
   onBounds: (bounds: google.maps.LatLngBoundsLiteral) => void;
@@ -22,6 +22,7 @@ type Props = {
 };
 export default function MapView(props: Props) {
   const container = useRef<HTMLDivElement>(null);
+  const continueWithoutMapButton = useRef<HTMLButtonElement>(null);
   const map = useRef<google.maps.Map | null>(null);
   const markers = useRef<google.maps.OverlayView[]>([]);
   const [pinIcons, setPinIcons] = useState<{ id: string; category?: Category; closed: boolean; count?: string; element: HTMLButtonElement }[]>([]);
@@ -33,6 +34,7 @@ export default function MapView(props: Props) {
   const issueLayer = useMemo(() => createIssueLayer(props.issues, CLUSTERING_ENABLED), [props.issues]);
   const latest = useRef(props); latest.current = props;
   const [state, setState] = useState<'loading' | 'ready' | 'missing-key' | 'error'>('loading');
+  useEffect(() => { if (props.placing) continueWithoutMapButton.current?.focus(); }, [props.placing]);
   useEffect(() => {
     let cancelled = false;
     const listeners: google.maps.MapsEventListener[] = [];
@@ -122,13 +124,13 @@ export default function MapView(props: Props) {
       {state !== 'loading' && <button className="button-secondary" onClick={() => window.location.reload()}><RefreshCw size={16} />Tentar novamente</button>}
     </div>}
     {props.userLocation && <div className="map-location-label"><span className="live-dot" />Localização ativada</div>}
-    {props.placing && <div className="placing-message"><MousePointer2 size={18} /><span>Toque no mapa para posicionar o relato</span><button aria-label="Cancelar escolha de local" onClick={props.onCancelPlace}><X size={18} /></button></div>}
+    {props.placing && <div className="placing-message"><MousePointer2 size={18} aria-hidden="true" /><span id="placing-instructions">Toque no mapa para posicionar o relato ou use outra opção.</span><button ref={continueWithoutMapButton} type="button" className="placing-message-continue" aria-describedby="placing-instructions" onClick={props.onContinueWithoutMap}>Continuar sem mapa</button><button type="button" className="placing-message-cancel" aria-label="Cancelar escolha de local" onClick={props.onCancelPlace}><X size={18} /></button></div>}
     <div className="map-bottom-actions">
     {state === 'ready' && <div className="map-style-switch" role="group" aria-label="Estilo do mapa">
       <button type="button" aria-label="Mapa de ruas" aria-pressed={mapStyle === 'roadmap'} onClick={() => setMapStyle('roadmap')}><MapIcon size={16} aria-hidden="true" />Ruas</button>
       <button type="button" aria-label="Mapa de satélite" aria-pressed={mapStyle === 'satellite'} onClick={() => setMapStyle('satellite')}><Satellite size={16} aria-hidden="true" />Satélite</button>
     </div>}
-    {props.canReport && <button type="button" className="button-primary map-report-button" onClick={props.onReport} disabled={props.reportDisabled}><Plus size={18} aria-hidden="true"/>Reportar</button>}
+    {props.canReport && <button type="button" className="button-primary map-report-button" onClick={event => props.onReport(event.currentTarget)} disabled={props.reportDisabled}><Plus size={18} aria-hidden="true"/>Reportar</button>}
     </div>
     <div className="map-controls">
       <button aria-label="Centralizar na minha localização" title="Minha localização" onClick={props.onLocate} disabled={props.locating}><LocateFixed size={20} className={props.locating ? 'animate-pulse' : ''} /></button>

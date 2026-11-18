@@ -134,7 +134,8 @@ export class IssueDatabase {
       return ({
       id: row.id, title: row.title, category: row.category, subcategory: row.subcategory ?? undefined, description: allowed ? row.description : undefined, privateDetailsVisible: allowed, photoCredit: demoPhotoCredit(row.id), address: row.address,
       lat: row.lat, lng: row.lng, status: row.status, authorId: row.author_id, author: this.profiles.name(row.author_id),
-      createdAt: row.created_at, sample: !!row.sample, photo: row.has_photo ? `/api/issues/${encodeURIComponent(row.id)}/photo` : undefined,
+      createdAt: row.created_at, sample: !!row.sample,
+      photo: row.has_photo ? `/api/issues/${encodeURIComponent(row.id)}/photo` : undefined,
       likes: likes.filter(like => like.issue_id === row.id).map(like => like.user_id),
       comments: allowed ? comments.filter(comment => comment.issue_id === row.id).map(comment => ({ id: comment.id, authorId: comment.author_id, author: this.profiles.name(comment.author_id), text: comment.text, createdAt: comment.created_at })) : [],
       history: history.filter(event => event.issue_id === row.id).map(event => ({ author: event.author, authorId: event.author_id || undefined, label: event.label, createdAt: event.created_at })),

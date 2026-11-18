@@ -19,6 +19,7 @@
     color-scheme: light;
     --text-primary: #242d29;
     --text-muted: #6b716f;
+    --coral-text: #c92f29;
     --accent: #277b60;
     --page: #fafaf7;
     --workspace: #f9f9f6;
@@ -42,6 +43,7 @@
     color-scheme: dark;
     --text-primary: #e8eeea;
     --text-muted: #a1ada6;
+    --coral-text: #ff8a83;
     --accent: #7ac6a7;
     --page: #111715;
     --workspace: #111715;
@@ -136,12 +138,13 @@
   .issue-card-main { @apply w-full text-left p-4 pb-3; }
   .issue-card h2 { @apply text-[13px] leading-normal font-semibold mb-1.5 tracking-[-.1px]; }
   .category-name { @apply inline-flex items-center gap-1.5 text-[10px] font-medium; }
-  .category-0 { color: #8a7950; background-color: #f3eee1; }
-  .category-1 { color: #b98c21; background-color: #faf1d9; }
-  .category-2 { color: #6c895f; background-color: #ebf2e4; }
-  .category-3 { color: #9c7157; background-color: #f3e9e0; }
-  .category-4 { color: #4a8ba8; background-color: #e2f0f5; }
-  .category-5 { color: #648668; background-color: #e9f0e4; }
+  .category-0 { color: #715d3c; background-color: #f3eee1; }
+  .category-1 { color: #7b5b08; background-color: #faf1d9; }
+  .category-2 { color: #526b48; background-color: #ebf2e4; }
+  .category-3 { color: #78553f; background-color: #f3e9e0; }
+  .category-4 { color: #32677e; background-color: #e2f0f5; }
+  .category-5 { color: #4d684f; background-color: #e9f0e4; }
+  .text-coral-contrast { color: var(--coral-text); }
   .category-name { background: transparent; }
   .status-badge { @apply inline-flex items-center gap-1 text-[9px] font-medium rounded px-1.5 py-1 whitespace-nowrap; }
   .status-badge i { @apply block w-1 h-1 rounded-full bg-current; }
@@ -153,7 +156,7 @@
   .issue-address svg { @apply shrink-0 mt-0.5; }
   .issue-card-footer { @apply flex items-center gap-3 px-4 pb-3.5 pt-0.5 text-[9px] text-muted; }
   .like-button, .comment-count { @apply flex items-center gap-1 text-[10px] transition-colors; }
-  .like-button:hover, .is-liked { color: #dc4944; }
+  .like-button:hover, .is-liked { color: var(--coral-text); }
   .issue-thumbnail { @apply w-14 h-14 rounded-lg object-cover; }
   .sidebar-bottom { @apply px-6 py-3 flex flex-col gap-1.5 border-t border-stone-100 text-[9px] text-muted shrink-0; }
   .map-workspace { @apply min-w-0 relative p-5; background: var(--workspace); }
@@ -179,8 +182,9 @@
   .button-primary { @apply bg-coral-action text-white rounded-xl px-5 py-3 flex items-center gap-2 text-xs font-semibold hover:bg-red-600 transition-colors; }
   .button-secondary { @apply border border-stone-200  text-ink rounded-xl px-4 py-2.5 inline-flex items-center justify-center gap-2 text-xs font-medium hover:bg-stone-50 transition-colors; background: var(--surface); }
   .text-button { @apply inline-flex items-center gap-1.5 text-xs text-forest-text font-medium hover:underline; }
-  .placing-message { @apply absolute top-20 left-1/2 -translate-x-1/2  text-white rounded-xl px-4 py-3 text-xs flex gap-2 items-center shadow-md w-max max-w-[90%]; background: #242d29; }
-  .placing-message button { @apply ml-2; }
+  .placing-message { @apply absolute top-20 left-1/2 -translate-x-1/2 text-white rounded-xl px-4 py-3 text-xs flex gap-2 items-center justify-center shadow-md w-max max-w-[90%]; flex-wrap: wrap; background: #242d29; }
+  .placing-message-continue { @apply rounded-lg underline font-semibold; min-height: 36px; padding: 6px 10px; border: 1px solid #ffffff80; }
+  .placing-message-cancel { @apply flex items-center justify-center rounded-full shrink-0; width: 36px; height: 36px; }
   .map-pin { @apply rounded-full border-[3px] border-white text-white shadow-lg bg-coral text-lg w-10 h-10 flex items-center justify-center transition-transform; }
   .map-pin:hover { transform: scale(1.12); }
   .map-pin-resolved { background: #525b66; }
@@ -204,7 +208,14 @@
   .report-form { @apply px-6 py-5; }
   .report-fields { @apply space-y-4 min-w-0; }
   .report-form label:not(.photo-upload), .field-label { @apply block text-xs font-semibold; }
-  .report-form input:not([type=file]):not([type=radio]), .report-form select, .report-form textarea { @apply block w-full border border-stone-200 rounded-lg mt-2 px-3 py-2.5 text-xs  font-normal; background: var(--surface); }
+  .report-form input:not([type=file]):not([type=radio]):not([type=checkbox]), .report-form select, .report-form textarea { @apply block w-full border border-stone-200 rounded-lg mt-2 px-3 py-2.5 text-xs  font-normal; background: var(--surface); }
+  .voice-transcriber { @apply border border-stone-200 rounded-xl p-3 space-y-3; }
+  .voice-transcriber legend { @apply px-1 text-xs font-semibold; }
+  .voice-transcriber-hint { @apply text-[10px] leading-relaxed text-muted; }
+  .voice-transcriber button { min-height: 44px; }
+  .voice-consent { display: flex !important; align-items: flex-start; gap: 8px; font-size: 11px !important; line-height: 1.6; font-weight: 400 !important; }
+  .voice-consent input { flex: 0 0 18px; width: 18px !important; height: 18px; margin: 2px 0 0 !important; padding: 0 !important; }
+  .voice-transcriber-interim { @apply text-xs text-muted; }
   .category-picker { @apply min-w-0; }
   .category-picker legend { @apply text-xs font-semibold mb-2; }
   .category-options { @apply grid grid-cols-3 gap-2; }
@@ -255,7 +266,7 @@
   .detail-meta { @apply flex flex-wrap items-center gap-1.5 text-[10px] text-muted mt-4; }
   .support-button { @apply flex items-center gap-2 w-full text-xs border border-stone-200 rounded-lg px-3 py-3 mt-5 hover:border-red-200 transition-colors; }
   .support-button b { @apply ml-auto; }
-  .support-button.supported { @apply text-coral border-red-100 bg-red-50; }
+  .support-button.supported { @apply border-red-100 bg-red-50; color: var(--coral-text); }
   .agency-controls { @apply bg-stone-50 rounded-lg p-3 mt-4; }
   .agency-controls label { @apply text-xs font-medium flex items-center gap-2 flex-wrap; }
   .agency-controls select { @apply block w-full  rounded-lg border border-stone-200 p-2 mt-1; background: var(--surface); }
@@ -358,10 +369,9 @@
   [data-theme="dark"] .avatar-resident { background: #4d3329; color: #f0b698; }
   [data-theme="dark"] .avatar-agency { background: #2a4034; color: #a3d0b5; }
   [data-theme="dark"] .avatar-admin { background: #39314d; color: #cbb6eb; }
-  [data-theme="dark"] .support-button.supported { color: #ff8a83; border-color: #67403a; background: #3b2725; }
+  [data-theme="dark"] .support-button.supported { color: var(--coral-text); border-color: #67403a; background: #3b2725; }
   [data-theme="dark"] .form-error { color: #ffb0aa; background: #442b29; }
   [data-theme="dark"] .delete-button { color: #ff8a83; }
-  [data-theme="dark"] .is-liked, [data-theme="dark"] .like-button:hover { color: #ff8a83; }
   [data-theme="dark"] .modal::backdrop { background: #050b09aa; }
 }
 

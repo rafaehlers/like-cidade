@@ -81,6 +81,17 @@ test('independent users share atomic supports and photos survive a server restar
   assert.deepEqual(Buffer.from(await photo.arrayBuffer()), jpeg);
 });
 
+test('raw audio is rejected so only reviewed transcription text can be submitted', async t => {
+  const api = await start(); t.after(() => api.close());
+  const clip = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
+  const before = ((await (await api.request('/issues')).json()) as IssueSnapshot).revision;
+  const response = await api.request('/issues', 'POST', { ...payload, audio: `data:audio/webm;base64,${clip.toString('base64')}` });
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /não armazena gravações de áudio/i);
+  const after = ((await (await api.request('/issues')).json()) as IssueSnapshot).revision;
+  assert.equal(after, before);
+});
+
 test('subcategory is optional but must belong to the selected category when supplied', async t => {
   const api = await start(); t.after(() => api.close());
   for (const subcategory of [undefined, '', null]) {
