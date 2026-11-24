@@ -1,6 +1,6 @@
 # Revisão dos requisitos não funcionais
 
-Revisão em 12/11/2026. Escopo autorizado nesta etapa: implementar o Graveyard e avaliar RNF005, RNF006, RNF007 e RNF011. O login Google/WorkOS foi adiado por Rafael. Esta revisão técnica não certifica conformidade legal ou acessibilidade integral.
+Revisão em 12/11/2026. Escopo autorizado nesta etapa: implementar o filtro de ocorrências encerradas e avaliar RNF005, RNF006, RNF007 e RNF011. O login Google/WorkOS foi adiado por Rafael. Esta revisão técnica não certifica conformidade legal ou acessibilidade integral.
 
 | Requisito | Situação | Evidência e pendências |
 | --- | --- | --- |
@@ -9,17 +9,17 @@ Revisão em 12/11/2026. Escopo autorizado nesta etapa: implementar o Graveyard e
 | RNF007 — WCAG 2.1 AA | Parcial; não considerar atendido | Existem idioma pt-BR, controles com rótulo, foco visível, diálogos nativos, abas do ranking com teclado e lista alternativa ao mapa. Foram encontrados contrastes insuficientes em textos pequenos do tema claro. Ainda é necessária avaliação das telas e estados com teclado, leitor de tela, zoom/reflow e contraste. |
 | RNF011 — Log de todas as ações administrativas e mudanças de status | Parcial | Atribuições guardam ator, data e antes/depois em `admin_audit`; atendimento grava comentários, status, prioridade e evidência em `service_events`, com histórico público de status. Essas tabelas rejeitam UPDATE/DELETE em ações normais; a eliminação de conta tem uma exceção transacional controlada. A exclusão de relato e outras mutações feitas por Admin não possuem um log administrativo geral. A identidade do ator ainda vem do seletor de teste. |
 
-## Graveyard
+## Ocorrências encerradas
 
 - Um único seletor **Todas as situações** controla o mapa e a lista. A visualização inicial inclui todos os status.
 - **Em aberto** reúne Registrada, Em análise e Em andamento.
-- **Graveyard** mostra apenas ocorrências encerradas, tanto no mapa quanto na lista.
+- **Encerradas** mostra apenas ocorrências encerradas, tanto no mapa quanto na lista.
 - **Todas as situações** permite comparar pendentes e encerradas no mesmo recorte. Os quatro status individuais também estão disponíveis no seletor.
 - Nesta versão, somente **Resolvida** representa encerramento. Isso não equivale à confirmação da solução pelo morador; esse fluxo continua pendente.
 - Pins encerrados usam lápide e cinza escuro, inclusive na visualização Todas. Agrupamentos compostos somente de encerradas usam lápide, quantidade e cinza; grupos mistos mostram a quantidade usual.
 - Categoria, busca, situação e limites do mapa continuam combináveis com o filtro. No celular, selecione a situação na aba Relatos e volte a Mapa; o filtro é compartilhado.
 - Links diretos e abertura pelo perfil ajustam a visualização para tornar uma ocorrência encerrada localizável. O SSE move ocorrências de um recorte para outro quando seu status muda.
-- Graveyard não exclui dados, não altera status e não recupera registros removidos pela administração. Novos status terminais devem ser definidos primeiro no fluxo de atendimento e incluídos em `isClosedStatus`.
+- O filtro **Encerradas** não exclui dados, não altera status e não recupera registros removidos pela administração. Novos status terminais devem ser definidos primeiro no fluxo de atendimento e incluídos em `isClosedStatus`.
 
 ## LGPD: decisões e trabalho necessário
 

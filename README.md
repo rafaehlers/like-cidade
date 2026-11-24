@@ -139,9 +139,9 @@ O compartilhamento está disponível nos detalhes, no CRM e após a publicação
 
 O ícone ao lado da cidade no mapa abre informações geográficas e populacionais, com ano de referência e links da Wikipédia. A consulta usa APIs públicas e cache no servidor; veja [informações da cidade](docs/city-info.md).
 
-## Graveyard e revisão dos requisitos
+## Ocorrências encerradas e revisão dos requisitos
 
-O seletor **Todas as situações** controla o mapa e a lista, reunindo **Em aberto**, **Graveyard (encerradas)** e cada status individual. Encerradas usam pins com lápide e cinza escuro; atualmente o único status terminal é **Resolvida**. Excluir um relato pela administração continua sendo uma operação distinta. Regras e avaliação de RNF005 (LGPD), RNF006 (HTTPS/Google OAuth), RNF007 (WCAG 2.1 AA) e RNF011 (auditoria) estão em [revisão dos requisitos não funcionais](docs/nonfunctional-requirements.md). O login permanece adiado; os quatro requisitos não foram marcados como integralmente atendidos.
+O seletor **Todas as situações** controla o mapa e a lista, reunindo **Em aberto**, **Encerradas** e cada status individual. Encerradas usam pins com lápide e cinza escuro; atualmente o único status terminal é **Resolvida**. Excluir um relato pela administração continua sendo uma operação distinta. Regras e avaliação de RNF005 (LGPD), RNF006 (HTTPS/Google OAuth), RNF007 (WCAG 2.1 AA) e RNF011 (auditoria) estão em [revisão dos requisitos não funcionais](docs/nonfunctional-requirements.md). O login permanece adiado; os quatro requisitos não foram marcados como integralmente atendidos.
 
 
 ## Termos, privacidade e dados da conta

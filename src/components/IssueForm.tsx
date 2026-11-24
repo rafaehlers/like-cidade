@@ -36,7 +36,7 @@ function ResolvedReportsReview({ issues, onOpenIssue, onClose, onContinue, cance
   const single = issues.length === 1;
   return <Modal title={single ? 'Ocorrência resolvida neste local' : 'Ocorrências resolvidas neste local'} onClose={onClose}>
     <div className="report-review">
-      <p className="text-sm text-muted leading-relaxed">Confira {single ? 'o relato' : 'os relatos'} do Graveyard. Se o problema for diferente ou tiver voltado, você pode registrar uma nova ocorrência.</p>
+      <p className="text-sm text-muted leading-relaxed">Confira {single ? 'o relato encerrado' : 'os relatos encerrados'}. Se o problema for diferente ou tiver voltado, você pode registrar uma nova ocorrência.</p>
       <ul className="space-y-2">
         {issues.map(issue => <li key={issue.id}>
           <button type="button" className="report-review-item" aria-label={`Ver relato resolvido ${issue.title}`} disabled={saving} onClick={() => onOpenIssue(issue)}>
@@ -145,7 +145,7 @@ export default function IssueForm({ position, onClose, onCheckLocation, onSave, 
     <form className="report-form" onSubmit={submit}>
       <fieldset disabled={saving} className="report-fields">
       <p className="text-sm text-muted leading-relaxed">Um relato é o primeiro passo. Conte o que você encontrou para que outras pessoas possam acompanhar.</p>
-      {locationCheck.unavailable && <p className="text-sm text-muted" role="status">A consulta ao Graveyard falhou. O local será conferido ao publicar.</p>}
+      {locationCheck.unavailable && <p className="text-sm text-muted" role="status">A consulta às ocorrências encerradas falhou. O local será conferido ao publicar.</p>}
       <div className="position-summary"><MapPin size={20} className="text-coral shrink-0" /><div><strong>Local do relato</strong><p>{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p></div><button type="button" className="text-button ml-auto" disabled={locating} onClick={useGps}><LocateFixed size={16} /><span>{locating ? 'Localizando…' : 'Usar GPS'}</span></button></div>
       <details className="coordinate-details"><summary><Navigation size={13} />Ajustar coordenadas</summary><div className="grid grid-cols-2 gap-3 mt-3"><label>Latitude<input aria-label="Latitude" type="number" step="any" min="-90" max="90" required value={Number.isFinite(point.lat) ? point.lat : ''} onChange={e => setPoint(p => ({ ...p, lat: e.target.value === '' ? NaN : Number(e.target.value) }))} /></label><label>Longitude<input aria-label="Longitude" type="number" step="any" min="-180" max="180" required value={Number.isFinite(point.lng) ? point.lng : ''} onChange={e => setPoint(p => ({ ...p, lng: e.target.value === '' ? NaN : Number(e.target.value) }))} /></label></div></details>
       <label>Um título para o problema <span className="text-coral">*</span><input autoFocus name="title" placeholder="Ex.: calçada quebrada perto da praça" minLength={5} maxLength={100} required /></label>
