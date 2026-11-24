@@ -238,6 +238,12 @@
   .photo-preview button { @apply absolute top-2 right-2  shadow; background: var(--surface); }
   .form-error { @apply text-xs text-red-700 bg-red-50 p-3 rounded-lg; }
   .modal-footer { @apply flex justify-end items-center gap-3 pt-3; }
+  .report-review { @apply px-6 py-5 space-y-4; }
+  .report-review-item { @apply flex items-center gap-3 w-full text-left border border-stone-200 rounded-xl p-3 hover:bg-stone-50; }
+  .report-review-item svg { @apply shrink-0 text-muted; }
+  .report-review-item span { @apply flex-1 min-w-0; overflow-wrap: anywhere; }
+  .report-review-item strong { @apply block text-sm font-semibold; }
+  .report-review-item small { @apply block mt-1 text-xs text-muted; }
   .detail-layout { @apply grid; grid-template-columns: 320px minmax(0,1fr); }
   .detail-visual { @apply relative flex items-center justify-center min-h-80; }
   .detail-visual>img { @apply w-full h-full absolute inset-0 object-contain; }

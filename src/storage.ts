@@ -1,11 +1,11 @@
-import type { IssueSnapshot, NewIssue, UserId } from './domain';
+import type { CreateIssueResult, IssueSnapshot, NewIssue, UserId } from './domain';
 
-async function request<T = IssueSnapshot>(path: string, options: RequestInit = {}): Promise<T> {
+async function request<T = IssueSnapshot>(path: string, options: RequestInit = {}, acceptedStatus?: number): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`/api${path}`, { ...options, cache: 'no-store', signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...options.headers } });
   } catch { throw new Error('Não foi possível conectar ao servidor. Confira sua conexão e tente novamente.'); }
-  if (!response.ok) {
+  if (!response.ok && response.status !== acceptedStatus) {
     const value = await response.json().catch(() => ({}));
     throw new Error(value.error ?? 'Não foi possível concluir a ação. Tente novamente.');
   }
@@ -13,7 +13,9 @@ async function request<T = IssueSnapshot>(path: string, options: RequestInit = {
 }
 const viewerHeaders = (userId:UserId) => ({'X-Demo-User':userId});
 export const loadIssues = (userId:UserId, signal?: AbortSignal) => request('/issues', { signal, headers:viewerHeaders(userId) });
-export const createSharedIssue = (value: NewIssue, userId: UserId) => request<IssueSnapshot & { createdId: string }>('/issues', { method: 'POST', headers:viewerHeaders(userId), body: JSON.stringify({ ...value, userId }) });
+export const createSharedIssue = (value: NewIssue, userId: UserId, reviewedResolvedIssueIds: string[]) => request<CreateIssueResult>('/issues', {
+  method: 'POST', headers: viewerHeaders(userId), body: JSON.stringify({ ...value, userId, reviewedResolvedIssueIds }),
+}, 409);
 export const setIssueSupport = (id: string, userId: UserId, supported: boolean) => request(`/issues/${encodeURIComponent(id)}/support`, { method: 'PUT', headers:viewerHeaders(userId), body: JSON.stringify({ userId, supported }) });
 export const removeSharedIssue = (id: string, userId: UserId) => request(`/issues/${encodeURIComponent(id)}`, { method: 'DELETE', headers:viewerHeaders(userId), body: JSON.stringify({ userId }) });
 

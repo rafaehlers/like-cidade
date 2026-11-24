@@ -13,6 +13,10 @@ export function useSuggestedAddress(point: Position) {
     setAddress(previous => ({ ...previous, value: previous.edited ? previous.value : '', suggestion: '' }));
     if (!validPosition(point)) { setStatus('invalid'); return; }
     setStatus('loading');
+    const deadline = window.setTimeout(() => {
+      active = false;
+      setStatus('unavailable');
+    }, 8000);
     const timer = window.setTimeout(async () => {
       try {
         const suggestion = await lookupStreet(point);
@@ -20,8 +24,9 @@ export function useSuggestedAddress(point: Position) {
         setAddress(previous => ({ ...previous, suggestion: suggestion ?? '', value: previous.edited ? previous.value : suggestion ?? '' }));
         setStatus(suggestion ? 'ready' : 'unavailable');
       } catch { if (active) setStatus('unavailable'); }
+      finally { window.clearTimeout(deadline); }
     }, 600);
-    return () => { active = false; window.clearTimeout(timer); };
+    return () => { active = false; window.clearTimeout(timer); window.clearTimeout(deadline); };
   }, [point.lat, point.lng, attempt]);
 
   return {

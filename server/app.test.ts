@@ -99,6 +99,66 @@ test('subcategory is optional but must belong to the selected category when supp
   assert.equal(((await (await api.request('/issues')).json()) as IssueSnapshot).revision, saved.revision);
 });
 
+test('publishing requires review of resolved reports on the same street, including new matches', async t => {
+  const api = await start(); t.after(() => api.close());
+  const post = (value: Record<string, unknown>) => api.request('/issues', 'POST', { ...payload, ...value });
+  const makeReport = async (value: Record<string, unknown>) => {
+    const response = await post(value);
+    assert.equal(response.status, 201);
+    return (await response.json() as { createdId: string }).createdId;
+  };
+  const resolveReport = async (id: string) => {
+    const response = await api.request(`/issues/${id}/status`, 'PATCH', {
+      userId: 'admin', status: 'Resolvida', expectedStatus: 'Registrada', expectedVersion: 0,
+      comment: 'Reparo concluído', photo: 'data:image/jpeg;base64,/9j/2Q==',
+    });
+    assert.equal(response.status, 200);
+    return await response.json() as IssueSnapshot;
+  };
+
+  const legacy = await makeReport({ address: 'R. Hercílio Luz, 17 — Centro, Itajaí', lat: -26.902, lng: -48.642 });
+  const open = await makeReport({ address: 'Ao lado da escola', mapAddress: 'Rua Hercílio Luz, 33 — Centro, Itajaí', lat: -26.904, lng: -48.638 });
+  const otherCity = await makeReport({ address: 'Rua Hercílio Luz, 88 — Centro, Navegantes', lat: -26.903, lng: -48.638 });
+  const otherStreet = await makeReport({ address: 'Rua da Oficina, 24 — Centro, Itajaí', lat: -26.905, lng: -48.638 });
+  await resolveReport(otherCity);
+  await resolveReport(otherStreet);
+  const before = await resolveReport(legacy);
+  const draft = {
+    userId: 'resident-felipe', title: 'Novo buraco junto à oficina', category: 'Buraco', address: 'Em frente à oficina',
+    mapAddress: 'Rua Hercilio Luz, 401 — Centro, Itajaí', lat: -26.905, lng: -48.638,
+  };
+  const warning = await post({ ...draft, reviewedResolvedIssueIds: [] });
+  assert.equal(warning.status, 409);
+  const review = await warning.json() as IssueSnapshot & { resolvedIssueIds: string[] };
+  assert.deepEqual(review.resolvedIssueIds, [legacy]);
+  assert.equal(review.revision, before.revision);
+  assert.equal(review.issues.some(issue => issue.title === draft.title), false);
+
+  await resolveReport(open);
+  const updatedWarning = await post({ ...draft, reviewedResolvedIssueIds: [legacy] });
+  assert.equal(updatedWarning.status, 409);
+  const updatedReview = await updatedWarning.json() as IssueSnapshot & { resolvedIssueIds: string[] };
+  assert.deepEqual(updatedReview.resolvedIssueIds, [open, legacy]);
+
+  const saved = await post({ ...draft, reviewedResolvedIssueIds: updatedReview.resolvedIssueIds });
+  assert.equal(saved.status, 201);
+  const published = await saved.json() as IssueSnapshot & { createdId: string };
+  assert.equal(published.revision, updatedReview.revision + 1);
+  assert.equal(published.issues.find(issue => issue.id === published.createdId)?.address, draft.address);
+  assert.equal(published.issues.filter(issue => issue.title === draft.title).length, 1);
+});
+
+test('a legacy report without a street is suggested only close to its map point', async t => {
+  const api = await start(); t.after(() => api.close());
+  const value = { ...payload, address: 'Centro, Itajaí', reviewedResolvedIssueIds: [] };
+  const nearby = await api.request('/issues', 'POST', { ...value, lat: -26.9102, lng: -48.6664 });
+  assert.equal(nearby.status, 409);
+  assert.deepEqual((await nearby.json()).resolvedIssueIds, ['example-2']);
+
+  const differentPoint = await api.request('/issues', 'POST', { ...value, lat: -26.911, lng: -48.6664 });
+  assert.equal(differentPoint.status, 201);
+});
+
 test('SSE notifies two open clients of every change and catches up after reconnecting', async t => {
   const api = await start(); const first = await subscribe(api.origin); const second = await subscribe(api.origin);
   t.after(async () => { first.close(); second.close(); await api.close(); });

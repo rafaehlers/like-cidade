@@ -2,7 +2,7 @@ import express, { type ErrorRequestHandler, type Request, type Response } from '
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { CATEGORIES, STATUSES, isSubcategory, validPosition, type Category, type Status, type UserId } from '../src/domain.js';
-import { IssueDatabase } from './database.js';
+import { IssueDatabase, ReportReviewRequired } from './database.js';
 import { RequestError } from './errors.js';
 import { resolveDemoActor } from './identity.js';
 import { PRIORITIES, type AssignmentUpdate, type ServiceUpdate } from '../src/management.js';
@@ -157,6 +157,9 @@ export function createApp({ databasePath, staticDirectory, publicSiteUrl = proce
     const subcategory = typeof data.subcategory === 'string' ? data.subcategory.trim() || undefined : data.subcategory ?? undefined;
     if (subcategory !== undefined && !isSubcategory(category, subcategory)) throw new RequestError(400, 'Escolha uma subcategoria válida para a categoria selecionada.');
     if (typeof data.lat !== 'number' || typeof data.lng !== 'number' || !validPosition({ lat: data.lat, lng: data.lng })) throw new RequestError(400, 'Escolha um ponto válido no mapa.');
+    const reviewed = data.reviewedResolvedIssueIds;
+    if (reviewed !== undefined && (!Array.isArray(reviewed) || !reviewed.every(id => typeof id === 'string'))) throw new RequestError(400, 'Confira os relatos resolvidos antes de continuar.');
+    const mapAddress = data.mapAddress === undefined ? undefined : text(data.mapAddress, 'Endereço sugerido pelo mapa', 1, 140);
     let photo: Buffer | undefined;
     if (data.photo !== undefined) {
       const match = typeof data.photo === 'string' && /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(data.photo);
@@ -166,7 +169,7 @@ export function createApp({ databasePath, staticDirectory, publicSiteUrl = proce
     }
     const createdId = database.create({ title: text(data.title, 'Título', 5, 100), category, subcategory,
       description: text(data.description ?? '', 'Comentário para o atendimento', 0, 1200), address: text(data.address ?? 'Local marcado no mapa', 'Referência', 1, 140),
-      lat: data.lat, lng: data.lng }, userId, photo);
+      mapAddress, lat: data.lat, lng: data.lng }, userId, photo, reviewed);
     res.set('Location', `/api/issues/${createdId}`);
     finish(req,res, 201, { createdId });
   });
@@ -192,7 +195,11 @@ export function createApp({ databasePath, staticDirectory, publicSiteUrl = proce
     app.use(express.static(staticDirectory));
     app.get('/{*path}', (_req, res) => res.sendFile(resolve(staticDirectory, 'index.html')));
   }
-  const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
+  const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
+    if (error instanceof ReportReviewRequired) {
+      res.status(error.status).json({ ...database.snapshot(viewer(req)), resolvedIssueIds: error.resolvedIssueIds, error: error.message });
+      return;
+    }
     const tooLarge = error?.type === 'entity.too.large';
     const invalidJson = error?.type === 'entity.parse.failed';
     const status = error instanceof RequestError ? error.status : tooLarge ? 413 : invalidJson ? 400 : 500;

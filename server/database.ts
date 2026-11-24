@@ -11,11 +11,18 @@ import { ManagementStore } from './management.js';
 import { AccountPrivacyStore } from './account-privacy.js';
 import { automaticPriority, neighborhoodFromReference, type ManagementSnapshot } from '../src/management.js';
 import { demoPhotoCredit } from './demo-photo-credits.js';
+import { resolvedReportsAtLocation } from './report-location.js';
 
 type IssueRow = Omit<Issue, 'author' | 'authorId' | 'createdAt' | 'photo' | 'likes' | 'comments' | 'history' | 'sample' | 'subcategory'> & {
   author_id: UserId; created_at: string; has_photo: number; sample: number; subcategory: Subcategory | null;
 };
 type ChildRow = { id: string; issue_id: string; author_id: UserId; author: string; text: string; label: string; created_at: string };
+
+export class ReportReviewRequired extends RequestError {
+  constructor(readonly resolvedIssueIds: string[]) {
+    super(409, 'Confira as ocorrências resolvidas neste local antes de publicar.');
+  }
+}
 
 export class IssueDatabase {
   readonly db: DatabaseSync;
@@ -35,7 +42,7 @@ export class IssueDatabase {
         id TEXT PRIMARY KEY, title TEXT NOT NULL, category TEXT NOT NULL,
         description TEXT NOT NULL, address TEXT NOT NULL, lat REAL NOT NULL, lng REAL NOT NULL,
         status TEXT NOT NULL, author_id TEXT NOT NULL, created_at TEXT NOT NULL,
-        sample INTEGER NOT NULL DEFAULT 0, photo BLOB, subcategory TEXT
+        sample INTEGER NOT NULL DEFAULT 0, photo BLOB, subcategory TEXT, map_address TEXT
       );
       CREATE TABLE IF NOT EXISTS likes (
         issue_id TEXT NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
@@ -56,6 +63,7 @@ export class IssueDatabase {
     try {
       const columns = this.db.prepare('PRAGMA table_info(issues)').all();
       if (!columns.some(column => column.name === 'subcategory')) this.db.exec('ALTER TABLE issues ADD COLUMN subcategory TEXT');
+      if (!columns.some(column => column.name === 'map_address')) this.db.exec('ALTER TABLE issues ADD COLUMN map_address TEXT');
       const version = this.db.prepare('PRAGMA user_version').get()!;
       if (Number(version.user_version) < 2) this.db.exec('PRAGMA user_version = 2');
       this.db.exec('COMMIT');
@@ -84,6 +92,7 @@ export class IssueDatabase {
     } catch(error){this.db.exec('ROLLBACK');this.db.close();throw error;}
     this.management=new ManagementStore(this.db,action=>this.write(action));
     this.privacy=new AccountPrivacyStore(this.db);
+    if (Number(this.db.prepare('PRAGMA user_version').get()!.user_version) < 8) this.db.exec('PRAGMA user_version = 8');
   }
 
   get revision() { return Number(this.db.prepare("SELECT value FROM metadata WHERE key = 'revision'").get()!.value); }
@@ -104,10 +113,10 @@ export class IssueDatabase {
     } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
 
-  private insertIssue(issue: Issue, photo?: Buffer) {
-    this.db.prepare('INSERT INTO issues (id, title, category, description, address, lat, lng, status, author_id, created_at, sample, photo, subcategory) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+  private insertIssue(issue: Issue & Pick<NewIssue, 'mapAddress'>, photo?: Buffer) {
+    this.db.prepare('INSERT INTO issues (id, title, category, description, address, lat, lng, status, author_id, created_at, sample, photo, subcategory, map_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
       issue.id, issue.title, issue.category, issue.description ?? '', issue.address, issue.lat, issue.lng,
-      issue.status, issue.authorId, issue.createdAt, issue.sample ? 1 : 0, photo ?? null, issue.subcategory ?? null,
+      issue.status, issue.authorId, issue.createdAt, issue.sample ? 1 : 0, photo ?? null, issue.subcategory ?? null, issue.mapAddress ?? null,
     );
   }
 
@@ -155,9 +164,15 @@ export class IssueDatabase {
     return {...snapshot,issues,cities,scopes,capabilities:snapshot.capabilities,assignmentVersions:admin?this.management.versions():[],audit:admin?this.management.audit():[]};
   }
 
-  create(value: NewIssue, userId: UserId, photo?: Buffer) {
+  create(value: NewIssue, userId: UserId, photo?: Buffer, reviewedResolvedIssueIds?: string[]) {
     const id = randomUUID(); const at = new Date().toISOString();
     this.write(() => {
+      if (reviewedResolvedIssueIds) {
+        const locations = this.db.prepare('SELECT id, status, address, map_address AS mapAddress, lat, lng FROM issues').all() as Parameters<typeof resolvedReportsAtLocation>[1];
+        const matches = resolvedReportsAtLocation(value, locations);
+        const reviewed = new Set(reviewedResolvedIssueIds);
+        if (matches.some(id => !reviewed.has(id))) throw new ReportReviewRequired(matches);
+      }
       this.insertIssue({ ...value, id, authorId: userId, author: this.profiles.name(userId), createdAt: at, status: 'Registrada', likes: [], comments: [], history: [] }, photo);
       this.addHistory(id, userId, 'Ocorrência registrada', at);
       this.profiles.credit(userId,'report',{ ...value,id },`report:${id}`,at);

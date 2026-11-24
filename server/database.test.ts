@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { IssueDatabase } from './database';
 
-test('adding optional subcategories migrates an existing database without changing reports or interactions', async t => {
+test('adding optional report fields migrates an existing database without changing reports or interactions', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'like-cidade-migration-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const path = join(directory, 'legacy.sqlite');
@@ -22,18 +22,20 @@ test('adding optional subcategories migrates an existing database without changi
 
   // Reproduce the version-1 schema while retaining the populated reports and child tables.
   const legacy = new DatabaseSync(path);
-  legacy.exec('ALTER TABLE issues DROP COLUMN subcategory; PRAGMA user_version = 1;');
+  legacy.exec('ALTER TABLE issues DROP COLUMN subcategory; ALTER TABLE issues DROP COLUMN map_address; PRAGMA user_version = 1;');
   legacy.close();
   store = new IssueDatabase(path);
   try {
-    assert.equal(store.db.prepare('PRAGMA user_version').get()!.user_version, 7);
+    assert.equal(store.db.prepare('PRAGMA user_version').get()!.user_version, 8);
     const migrated=JSON.parse(JSON.stringify(store.snapshot('admin')));
     assert.deepEqual(migrated.issues,before.issues);assert.deepEqual(migrated.profiles,before.profiles);assert.ok(migrated.revision>=before.revision);
     assert.deepEqual(Buffer.from(store.photo(id)!), photo);
     assert.equal(store.snapshot('admin').issues.find(issue => issue.id === id)!.subcategory, undefined);
-    const created = store.create({ ...value, subcategory: 'Piso desnivelado' }, 'resident');
+    const mapAddress = 'Rua Hercílio Luz — Centro, Itajaí';
+    const created = store.create({ ...value, subcategory: 'Piso desnivelado', mapAddress }, 'resident');
     assert.equal(store.snapshot('admin').issues.find(issue => issue.id === created)!.subcategory, 'Piso desnivelado');
     store.close(); store = new IssueDatabase(path);
     assert.equal(store.snapshot('admin').issues.find(issue => issue.id === created)!.subcategory, 'Piso desnivelado');
+    assert.equal(store.db.prepare('SELECT map_address FROM issues WHERE id = ?').get(created)?.map_address, mapAddress);
   } finally { store.close(); }
 });
