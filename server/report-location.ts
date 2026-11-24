@@ -1,7 +1,7 @@
 import { isClosedStatus, type NewIssue, type Position, type Status } from '../src/domain.js';
 
 type ReportLocation = Pick<NewIssue, 'address' | 'mapAddress' | 'lat' | 'lng'>;
-type LocatedReport = ReportLocation & { id: string; status: Status };
+export type LocatedReport = ReportLocation & { id: string; status: Status };
 
 const SAME_POINT_METERS = 30;
 const STREET_WITHOUT_CITY_METERS = 1000;

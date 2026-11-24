@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { CATEGORIES, STATUSES } from '../src/domain';
-import { IssueDatabase } from './database';
+import { IssueDatabase, ReportReviewRequired } from './database';
 import { loadDemoDataset, seedDemoReports } from './demo-seed';
 
 test('demo dataset has 20 reports in each pilot city with matching licensed JPEG photos', () => {
@@ -61,6 +61,34 @@ test('demo import preserves existing records and reruns do not reset edits or du
   assert.deepEqual(store.snapshot('admin').issues.find(issue => issue.id === realId), before);
   assert.equal(store.snapshot('admin').issues.length, 64);
   store.close();
+});
+
+test('the existing Rua 910 demo report is found by street beyond the proximity radius', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'like-cidade-rua-910-'));
+  const path = join(directory, 'demo.sqlite');
+  seedDemoReports(path);
+  const store = new IssueDatabase(path);
+  t.after(async () => { store.close(); await rm(directory, { recursive: true, force: true }); });
+
+  const reportId = 'demo-city-v1-bc-04';
+  assert.equal(store.db.prepare('SELECT map_address FROM issues WHERE id = ?').get(reportId)?.map_address, 'Rua 910 — Centro, Balneário Camboriú');
+  store.db.prepare('UPDATE issues SET map_address = NULL WHERE id = ?').run(reportId);
+  const draft = {
+    title: 'Novo buraco na Rua 910', category: 'Buraco' as const, description: '',
+    address: 'R. 910, 400 — Centro, Balneário Camboriú', lat: -26.99355, lng: -48.63877,
+  };
+
+  const revision = store.revision;
+  assert.throws(() => store.create(draft, 'resident', undefined, []), error => {
+    assert.ok(error instanceof ReportReviewRequired);
+    assert.deepEqual(error.resolvedIssueIds, [reportId]);
+    return true;
+  });
+  assert.equal(store.revision, revision);
+
+  const otherStreet = { ...draft, address: 'Rua 916 — Centro, Balneário Camboriú', lat: -26.99412, lng: -48.63916 };
+  assert.ok(store.create(otherStreet, 'resident', undefined, []));
+  assert.ok(store.create(draft, 'resident', undefined, [reportId]));
 });
 
 test('an invalid dataset does not modify an existing database', async t => {

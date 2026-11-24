@@ -101,7 +101,11 @@ export default function MapView(props: Props) {
         const { issue } = feature.properties;
         content.className = `map-pin ${isClosedStatus(issue.status) ? 'map-pin-resolved' : ''} ${props.selectedId === issue.id ? 'map-pin-selected' : ''}`;
         content.setAttribute('aria-label', `${isClosedStatus(issue.status) ? 'Encerrada: ' : ''}${issue.title}`); content.title = `${issue.category} · ${issue.title} · ${issue.status}`;
-        content.addEventListener('click', () => latest.current.onSelect(issue.id));
+        content.addEventListener('click', () => {
+          const { placing, onPick, onSelect } = latest.current;
+          if (placing) onPick(position);
+          else onSelect(issue.id);
+        });
         icons.push({ id: issue.id, category: issue.category, closed: isClosedStatus(issue.status), element: content });
       }
       markers.current.push(createMapMarker(map.current!, position, content));

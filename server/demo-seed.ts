@@ -3,9 +3,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { CATEGORIES, PEOPLE, STATUSES, isUserId, validPosition, type Category, type Status, type UserId } from '../src/domain.js';
 import { IssueDatabase } from './database.js';
+import type { DemoReportMetadata } from './demo-report-metadata.js';
 
 type PhotoCredit = { key: string; category: Category; file: string; author: string; license: string; licenseUrl: string; sourceUrl: string; sha256: string };
-type DemoReport = { id: string; city: string; citySlug: string; title: string; category: Category; description: string; lat: number; lng: number; address: string; status: Status; authorId: UserId; photoKey: string; ageHours: number; supportCount: number; commentCount: number };
+type DemoReport = DemoReportMetadata & { city: string; citySlug: string; title: string; category: Category; description: string; address: string; status: Status; authorId: UserId; ageHours: number; supportCount: number; commentCount: number };
 const cities: Record<string, string> = { bc: 'Balneário Camboriú', itajai: 'Itajaí', navegantes: 'Navegantes' };
 const residents = Object.keys(PEOPLE).filter(id => PEOPLE[id as UserId].type === 'resident') as UserId[];
 
@@ -33,6 +34,7 @@ export function loadDemoDataset(directory = resolve('demo-data')) {
     const credit = photo.credit;
     const description = `Exemplo fictício para testes. A foto é ilustrativa, de outro local, e não comprova um problema nesta cidade.\n\nCenário: ${report.description}\n\nFoto: ${credit.author} / Wikimedia Commons (${credit.license}). Fonte: ${credit.sourceUrl}${credit.licenseUrl ? `\nLicença: ${credit.licenseUrl}` : ''}`;
     if (!report.title || report.title.length > 100 || !report.address || report.address.length > 140 || description.length > 1200) throw new Error(`Texto excede os limites: ${report.id}`);
+    if (report.mapAddress !== undefined && (typeof report.mapAddress !== 'string' || !report.mapAddress.trim() || report.mapAddress.length > 140)) throw new Error(`Endereço de mapa inválido: ${report.id}`);
     descriptions.set(report.id, description);
   }
   for (const city of Object.values(cities)) if (reports.filter(report => report.city === city).length !== 20) throw new Error(`Esperados 20 relatos para ${city}.`);
@@ -49,7 +51,7 @@ export function seedDemoReports(databasePath: string, directory = resolve('demo-
   try {
     db.exec('BEGIN IMMEDIATE');
     const exists = db.prepare('SELECT sample FROM issues WHERE id = ?');
-    const insert = db.prepare('INSERT INTO issues (id, title, category, description, address, lat, lng, status, author_id, created_at, sample, photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)');
+    const insert = db.prepare('INSERT INTO issues (id, title, category, description, address, lat, lng, status, author_id, created_at, sample, photo, map_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)');
     const history = db.prepare('INSERT INTO history (id, issue_id, author, author_id, label, created_at) VALUES (?, ?, ?, ?, ?, ?)');
     const support = db.prepare('INSERT INTO likes (issue_id, user_id) VALUES (?, ?)');
     const comment = db.prepare('INSERT INTO comments (id, issue_id, author_id, text, created_at) VALUES (?, ?, ?, ?, ?)');
@@ -60,7 +62,7 @@ export function seedDemoReports(databasePath: string, directory = resolve('demo-
         continue; // Keep all existing edits, likes, comments, photos and timestamps on repeated runs.
       }
       const created = now - report.ageHours * 3600000;
-      insert.run(report.id, report.title, report.category, descriptions.get(report.id)!, report.address, report.lat, report.lng, report.status, report.authorId, new Date(created).toISOString(), photos.get(report.photoKey)!.bytes);
+      insert.run(report.id, report.title, report.category, descriptions.get(report.id)!, report.address, report.lat, report.lng, report.status, report.authorId, new Date(created).toISOString(), photos.get(report.photoKey)!.bytes, report.mapAddress ?? null);
       history.run(`${report.id}-history-0`, report.id, PEOPLE[report.authorId].name, report.authorId, 'Relato fictício de demonstração criado com foto ilustrativa', new Date(created).toISOString());
       for (let step = 1; step <= STATUSES.indexOf(report.status); step++) {
         history.run(`${report.id}-history-${step}`, report.id, PEOPLE.agency.name, 'agency', `Atendimento simulado: ${STATUSES[step].toLowerCase()}`, new Date(created + step * 3600000).toISOString());

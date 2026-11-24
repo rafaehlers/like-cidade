@@ -10,13 +10,14 @@ import { cityFromReference } from '../src/ranking.js';
 import { ManagementStore } from './management.js';
 import { AccountPrivacyStore } from './account-privacy.js';
 import { automaticPriority, neighborhoodFromReference, type ManagementSnapshot } from '../src/management.js';
-import { demoPhotoCredit } from './demo-photo-credits.js';
-import { resolvedReportsAtLocation } from './report-location.js';
+import { demoPhotoCredit, demoReportMapAddress } from './demo-report-metadata.js';
+import { resolvedReportsAtLocation, type LocatedReport } from './report-location.js';
 
 type IssueRow = Omit<Issue, 'author' | 'authorId' | 'createdAt' | 'photo' | 'likes' | 'comments' | 'history' | 'sample' | 'subcategory'> & {
   author_id: UserId; created_at: string; has_photo: number; sample: number; subcategory: Subcategory | null;
 };
 type ChildRow = { id: string; issue_id: string; author_id: UserId; author: string; text: string; label: string; created_at: string };
+type IssueLocationRow = Omit<LocatedReport, 'mapAddress'> & { mapAddress: string | null; sample: number };
 
 export class ReportReviewRequired extends RequestError {
   constructor(readonly resolvedIssueIds: string[]) {
@@ -168,8 +169,11 @@ export class IssueDatabase {
     const id = randomUUID(); const at = new Date().toISOString();
     this.write(() => {
       if (reviewedResolvedIssueIds) {
-        const locations = this.db.prepare('SELECT id, status, address, map_address AS mapAddress, lat, lng FROM issues').all() as Parameters<typeof resolvedReportsAtLocation>[1];
-        const matches = resolvedReportsAtLocation(value, locations);
+        const locations = this.db.prepare('SELECT id, status, address, map_address AS mapAddress, lat, lng, sample FROM issues').all() as unknown as IssueLocationRow[];
+        const matches = resolvedReportsAtLocation(value, locations.map(report => ({
+          ...report,
+          mapAddress: report.mapAddress ?? (report.sample ? demoReportMapAddress(report) : undefined),
+        })));
         const reviewed = new Set(reviewedResolvedIssueIds);
         if (matches.some(id => !reviewed.has(id))) throw new ReportReviewRequired(matches);
       }
