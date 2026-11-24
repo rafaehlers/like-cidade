@@ -79,6 +79,9 @@ test('the existing Rua 910 demo report is found by street beyond the proximity r
   };
 
   const revision = store.revision;
+  assert.deepEqual(store.resolvedReportIdsAt(draft), [reportId]);
+  assert.equal(store.revision, revision);
+
   assert.throws(() => store.create(draft, 'resident', undefined, []), error => {
     assert.ok(error instanceof ReportReviewRequired);
     assert.deepEqual(error.resolvedIssueIds, [reportId]);
@@ -87,6 +90,7 @@ test('the existing Rua 910 demo report is found by street beyond the proximity r
   assert.equal(store.revision, revision);
 
   const otherStreet = { ...draft, address: 'Rua 916 — Centro, Balneário Camboriú', lat: -26.99412, lng: -48.63916 };
+  assert.deepEqual(store.resolvedReportIdsAt(otherStreet), []);
   assert.ok(store.create(otherStreet, 'resident', undefined, []));
   assert.ok(store.create(draft, 'resident', undefined, [reportId]));
 });

@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Camera, Check, ChevronRight, ImagePlus, LoaderCircle, LocateFixed, MapPin, X, Navigation } from 'lucide-react';
-import { CATEGORIES, SUBCATEGORIES, validPosition, type Category, type Subcategory, type Issue, type Position, type NewIssue } from '../domain';
+import { CATEGORIES, SUBCATEGORIES, validPosition, type Category, type Subcategory, type Issue, type Position, type NewIssue, type ReportLocation } from '../domain';
 import { preparePhoto } from '../storage';
 import Modal from './Modal';
 import CategoryIcon from './CategoryIcon';
@@ -11,13 +11,51 @@ export type { NewIssue } from '../domain';
 type Props = {
   position: Position;
   onClose: () => void;
+  onCheckLocation: (location: ReportLocation, signal: AbortSignal) => Promise<Issue[]>;
   onSave: (value: NewIssue, reviewedResolvedIssueIds: string[]) => Promise<Issue[] | undefined>;
   onOpenIssue: (issue: Issue) => void;
   onLocate: () => Promise<Position | undefined>;
   locating: boolean;
 };
 
-export default function IssueForm({ position, onClose, onSave, onOpenIssue, onLocate, locating }: Props) {
+type LocationCheck =
+  | { step: 'checking' }
+  | { step: 'review'; issues: Issue[] }
+  | { step: 'form'; reviewedIds: string[]; unavailable?: boolean };
+
+function ResolvedReportsReview({ issues, onOpenIssue, onClose, onContinue, cancelLabel, continueLabel, saving = false, error }: {
+  issues: Issue[];
+  onOpenIssue: Props['onOpenIssue'];
+  onClose: () => void;
+  onContinue: () => void;
+  cancelLabel: string;
+  continueLabel: string;
+  saving?: boolean;
+  error?: string;
+}) {
+  const single = issues.length === 1;
+  return <Modal title={single ? 'Ocorrência resolvida neste local' : 'Ocorrências resolvidas neste local'} onClose={onClose}>
+    <div className="report-review">
+      <p className="text-sm text-muted leading-relaxed">Confira {single ? 'o relato' : 'os relatos'} do Graveyard. Se o problema for diferente ou tiver voltado, você pode registrar uma nova ocorrência.</p>
+      <ul className="space-y-2">
+        {issues.map(issue => <li key={issue.id}>
+          <button type="button" className="report-review-item" aria-label={`Ver relato resolvido ${issue.title}`} disabled={saving} onClick={() => onOpenIssue(issue)}>
+            <GraveyardIcon size={20} aria-hidden="true" />
+            <span><strong>{issue.title}</strong><small>{issue.category} · {issue.address}</small></span>
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+        </li>)}
+      </ul>
+      {error && <p role="alert" className="form-error">{error}</p>}
+      <div className="modal-footer flex-wrap">
+        <button type="button" className="button-secondary" disabled={saving} onClick={onClose}>{cancelLabel}</button>
+        <button type="button" className="button-primary" disabled={saving} onClick={onContinue}>{saving ? 'Publicando…' : continueLabel}</button>
+      </div>
+    </div>
+  </Modal>;
+}
+
+export default function IssueForm({ position, onClose, onCheckLocation, onSave, onOpenIssue, onLocate, locating }: Props) {
   const [point, setPoint] = useState(position);
   const [category, setCategory] = useState<Category | ''>('');
   const [subcategory, setSubcategory] = useState<Subcategory | ''>('');
@@ -26,9 +64,28 @@ export default function IssueForm({ position, onClose, onSave, onOpenIssue, onLo
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [usingGps, setUsingGps] = useState(false);
+  const [locationCheck, setLocationCheck] = useState<LocationCheck>({ step: 'checking' });
   const [review, setReview] = useState<{ value: NewIssue; issues: Issue[] }>();
   const [error, setError] = useState('');
   const findingStreet = address.status === 'loading';
+  const checkingLocation = locationCheck.step === 'checking';
+  const reportAddress = address.value.trim() || 'Local marcado no mapa';
+  const mapAddress = address.suggestion || undefined;
+
+  useEffect(() => {
+    if (!checkingLocation || findingStreet) return;
+    const controller = new AbortController();
+    void onCheckLocation({ ...point, address: reportAddress, mapAddress }, controller.signal)
+      .then(issues => {
+        if (controller.signal.aborted) return;
+        setLocationCheck(issues.length ? { step: 'review', issues } : { step: 'form', reviewedIds: [] });
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setLocationCheck({ step: 'form', reviewedIds: [], unavailable: true });
+      });
+    return () => controller.abort();
+  }, [checkingLocation, findingStreet, mapAddress, onCheckLocation, point, reportAddress]);
 
   async function useGps() {
     setUsingGps(true);
@@ -50,7 +107,7 @@ export default function IssueForm({ position, onClose, onSave, onOpenIssue, onLo
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving || processing || findingStreet || usingGps) return;
+    if (locationCheck.step !== 'form' || saving || processing || findingStreet || usingGps) return;
     const data = new FormData(event.currentTarget);
     const title = String(data.get('title') || '').trim();
     if (title.length < 5) { setError('Conte um pouco mais no título, com pelo menos 5 caracteres.'); return; }
@@ -58,15 +115,37 @@ export default function IssueForm({ position, onClose, onSave, onOpenIssue, onLo
     if (!validPosition(point)) { setError('Confira a latitude e a longitude do ponto.'); return; }
     void publish({
       title, category, subcategory: subcategory || undefined, description: String(data.get('description') || '').trim(),
-      address: address.value.trim() || 'Local marcado no mapa', mapAddress: address.suggestion || undefined, photo, ...point,
-    });
+      address: reportAddress, mapAddress, photo, ...point,
+    }, locationCheck.reviewedIds);
   }
   function closeReview() { if (!saving) setReview(undefined); }
+
+  if (locationCheck.step === 'checking') {
+    return <Modal title="Verificando o local do relato" onClose={onClose}>
+      <div className="report-review">
+        <p className="flex items-center gap-2 text-sm text-muted" role="status">
+          <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />Consultando ocorrências resolvidas neste local…
+        </p>
+      </div>
+    </Modal>;
+  }
+
+  if (locationCheck.step === 'review') {
+    return <ResolvedReportsReview
+      issues={locationCheck.issues}
+      onOpenIssue={onOpenIssue}
+      onClose={onClose}
+      cancelLabel="Voltar ao mapa"
+      continueLabel="Continuar com novo relato"
+      onContinue={() => setLocationCheck({ step: 'form', reviewedIds: locationCheck.issues.map(issue => issue.id) })}
+    />;
+  }
 
   return <><Modal title="O que precisa de um cuidado?" onClose={() => { if (!saving) onClose(); }}>
     <form className="report-form" onSubmit={submit}>
       <fieldset disabled={saving} className="report-fields">
       <p className="text-sm text-muted leading-relaxed">Um relato é o primeiro passo. Conte o que você encontrou para que outras pessoas possam acompanhar.</p>
+      {locationCheck.unavailable && <p className="text-sm text-muted" role="status">A consulta ao Graveyard falhou. O local será conferido ao publicar.</p>}
       <div className="position-summary"><MapPin size={20} className="text-coral shrink-0" /><div><strong>Local do relato</strong><p>{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p></div><button type="button" className="text-button ml-auto" disabled={locating} onClick={useGps}><LocateFixed size={16} /><span>{locating ? 'Localizando…' : 'Usar GPS'}</span></button></div>
       <details className="coordinate-details"><summary><Navigation size={13} />Ajustar coordenadas</summary><div className="grid grid-cols-2 gap-3 mt-3"><label>Latitude<input aria-label="Latitude" type="number" step="any" min="-90" max="90" required value={Number.isFinite(point.lat) ? point.lat : ''} onChange={e => setPoint(p => ({ ...p, lat: e.target.value === '' ? NaN : Number(e.target.value) }))} /></label><label>Longitude<input aria-label="Longitude" type="number" step="any" min="-180" max="180" required value={Number.isFinite(point.lng) ? point.lng : ''} onChange={e => setPoint(p => ({ ...p, lng: e.target.value === '' ? NaN : Number(e.target.value) }))} /></label></div></details>
       <label>Um título para o problema <span className="text-coral">*</span><input autoFocus name="title" placeholder="Ex.: calçada quebrada perto da praça" minLength={5} maxLength={100} required /></label>
@@ -98,24 +177,15 @@ export default function IssueForm({ position, onClose, onSave, onOpenIssue, onLo
       </fieldset>
     </form>
   </Modal>
-    {review && <Modal title={review.issues.length === 1 ? 'Ocorrência resolvida neste local' : 'Ocorrências resolvidas neste local'} onClose={closeReview}>
-      <div className="report-review">
-        <p className="text-sm text-muted leading-relaxed">Confira {review.issues.length === 1 ? 'o relato' : 'os relatos'} do Graveyard. Se o problema for diferente ou tiver voltado, você pode publicar uma nova ocorrência.</p>
-        <ul className="space-y-2">
-          {review.issues.map(issue => <li key={issue.id}>
-            <button type="button" className="report-review-item" aria-label={`Ver relato resolvido ${issue.title}`} disabled={saving} onClick={() => onOpenIssue(issue)}>
-              <GraveyardIcon size={20} aria-hidden="true" />
-              <span><strong>{issue.title}</strong><small>{issue.category} · {issue.address}</small></span>
-              <ChevronRight size={16} aria-hidden="true" />
-            </button>
-          </li>)}
-        </ul>
-        {error && <p role="alert" className="form-error">{error}</p>}
-        <div className="modal-footer flex-wrap">
-          <button type="button" className="button-secondary" disabled={saving} onClick={closeReview}>Voltar ao formulário</button>
-          <button type="button" className="button-primary" disabled={saving} onClick={() => { void publish(review.value, review.issues.map(issue => issue.id)); }}>{saving ? 'Publicando…' : 'Publicar novo relato'}</button>
-        </div>
-      </div>
-    </Modal>}
+    {review && <ResolvedReportsReview
+      issues={review.issues}
+      onOpenIssue={onOpenIssue}
+      onClose={closeReview}
+      cancelLabel="Voltar ao formulário"
+      continueLabel="Publicar novo relato"
+      onContinue={() => { void publish(review.value, review.issues.map(issue => issue.id)); }}
+      saving={saving}
+      error={error}
+    />}
   </>;
 }

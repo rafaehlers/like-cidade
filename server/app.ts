@@ -1,7 +1,7 @@
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { CATEGORIES, STATUSES, isSubcategory, validPosition, type Category, type Status, type UserId } from '../src/domain.js';
+import { CATEGORIES, STATUSES, isSubcategory, validPosition, type Category, type ReportLocation, type Status, type UserId } from '../src/domain.js';
 import { IssueDatabase, ReportReviewRequired } from './database.js';
 import { RequestError } from './errors.js';
 import { resolveDemoActor } from './identity.js';
@@ -17,6 +17,17 @@ function body(req: Request): Record<string, unknown> {
 function text(value: unknown, label: string, min: number, max: number) {
   if (typeof value !== 'string' || value.trim().length < min || value.trim().length > max) throw new RequestError(400, `${label}: use de ${min} a ${max} caracteres.`);
   return value.trim();
+}
+function reportLocation(data: Record<string, unknown>): ReportLocation {
+  const { lat, lng } = data;
+  if (typeof lat !== 'number' || typeof lng !== 'number' || !validPosition({ lat, lng })) {
+    throw new RequestError(400, 'Escolha um ponto válido no mapa.');
+  }
+  return {
+    lat, lng,
+    address: text(data.address ?? 'Local marcado no mapa', 'Referência', 1, 140),
+    mapAddress: data.mapAddress === undefined ? undefined : text(data.mapAddress, 'Endereço sugerido pelo mapa', 1, 140),
+  };
 }
 function id(req: Request) { return String(req.params.id); }
 
@@ -149,6 +160,10 @@ export function createApp({ databasePath, staticDirectory, publicSiteUrl = proce
     if (!photo) throw new RequestError(404, 'Foto não encontrada.');
     res.type('image/jpeg').send(Buffer.from(photo));
   });
+  app.post('/api/issues/location-review', (req, res) => {
+    const resolvedIssueIds = database.resolvedReportIdsAt(reportLocation(body(req)));
+    res.json({ ...database.snapshot(viewer(req)), resolvedIssueIds });
+  });
   app.post('/api/issues', (req, res) => {
     const data = body(req); const userId = resolveActor(req,data);
     if (database.profiles.require(userId).role === 'agency') throw new RequestError(403, 'Use um perfil de morador ou administrador para publicar.');
@@ -156,10 +171,9 @@ export function createApp({ databasePath, staticDirectory, publicSiteUrl = proce
     const category = data.category as Category;
     const subcategory = typeof data.subcategory === 'string' ? data.subcategory.trim() || undefined : data.subcategory ?? undefined;
     if (subcategory !== undefined && !isSubcategory(category, subcategory)) throw new RequestError(400, 'Escolha uma subcategoria válida para a categoria selecionada.');
-    if (typeof data.lat !== 'number' || typeof data.lng !== 'number' || !validPosition({ lat: data.lat, lng: data.lng })) throw new RequestError(400, 'Escolha um ponto válido no mapa.');
+    const location = reportLocation(data);
     const reviewed = data.reviewedResolvedIssueIds;
     if (reviewed !== undefined && (!Array.isArray(reviewed) || !reviewed.every(id => typeof id === 'string'))) throw new RequestError(400, 'Confira os relatos resolvidos antes de continuar.');
-    const mapAddress = data.mapAddress === undefined ? undefined : text(data.mapAddress, 'Endereço sugerido pelo mapa', 1, 140);
     let photo: Buffer | undefined;
     if (data.photo !== undefined) {
       const match = typeof data.photo === 'string' && /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(data.photo);
@@ -167,9 +181,8 @@ export function createApp({ databasePath, staticDirectory, publicSiteUrl = proce
       photo = Buffer.from(match[1], 'base64');
       if (photo.length > 3 * 1024 * 1024 || photo.length < 4 || photo[0] !== 0xff || photo[1] !== 0xd8 || photo[2] !== 0xff) throw new RequestError(400, 'A foto é inválida ou ultrapassa 3 MB após o preparo.');
     }
-    const createdId = database.create({ title: text(data.title, 'Título', 5, 100), category, subcategory,
-      description: text(data.description ?? '', 'Comentário para o atendimento', 0, 1200), address: text(data.address ?? 'Local marcado no mapa', 'Referência', 1, 140),
-      mapAddress, lat: data.lat, lng: data.lng }, userId, photo, reviewed);
+    const createdId = database.create({ ...location, title: text(data.title, 'Título', 5, 100), category, subcategory,
+      description: text(data.description ?? '', 'Comentário para o atendimento', 0, 1200) }, userId, photo, reviewed);
     res.set('Location', `/api/issues/${createdId}`);
     finish(req,res, 201, { createdId });
   });

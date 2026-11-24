@@ -1,6 +1,5 @@
-import { isClosedStatus, type NewIssue, type Position, type Status } from '../src/domain.js';
+import { isClosedStatus, type ReportLocation, type Position, type Status } from '../src/domain.js';
 
-type ReportLocation = Pick<NewIssue, 'address' | 'mapAddress' | 'lat' | 'lng'>;
 export type LocatedReport = ReportLocation & { id: string; status: Status };
 
 const SAME_POINT_METERS = 30;

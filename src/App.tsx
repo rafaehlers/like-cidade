@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownWideNarrow, ArrowUpRight, Building2, Check, CheckCheck, CircleHelp, Clock3, Heart, Info, Map as MapIcon, MapPin, Plus, Search, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X, LoaderCircle, List, Moon, Sun, Trophy, ClipboardList } from 'lucide-react';
-import { CATEGORIES, CENTER, PEOPLE, STATUSES, inBounds, isUserId, isClosedStatus, matchesLifecycle, type IssueLifecycle, type IssueSnapshot, type Issue, type Position, type UserId, type Status } from './domain';
-import { createSharedIssue, removeSharedIssue, setIssueSupport } from './storage';
+import { CATEGORIES, CENTER, PEOPLE, STATUSES, inBounds, isUserId, isClosedStatus, matchesLifecycle, type IssueLifecycle, type IssueSnapshot, type Issue, type Position, type ReportLocation, type ReportLocationReview, type UserId, type Status } from './domain';
+import { createSharedIssue, removeSharedIssue, reviewReportLocation, setIssueSupport } from './storage';
 import { displayIssue } from './presentation';
 import MapView from './components/MapView';
 import Modal from './components/Modal';
@@ -21,6 +21,14 @@ import { useIssueRoute } from './useIssueRoute';
 
 const date = (value: string) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 function StatusBadge({ status }: { status: Status }) { return <span className={`status-badge status-${STATUSES.indexOf(status)}`}><i />{status}</span>; }
+
+function resolvedIssuesForReview({ issues, resolvedIssueIds }: ReportLocationReview) {
+  const byId = new Map(issues.map(issue => [issue.id, issue]));
+  return resolvedIssueIds.flatMap(id => {
+    const issue = byId.get(id);
+    return issue ? [displayIssue(issue)] : [];
+  });
+}
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
@@ -94,16 +102,16 @@ export default function App() {
     const issue = issues.find(item => item.id === id); if (!issue) return;
     void mutate(() => setIssueSupport(id, userId, !issue.likes.includes(userId))).catch(() => {});
   }
+  const checkReportLocation = useCallback(async (location: ReportLocation, signal: AbortSignal) => {
+    const snapshot = await reviewReportLocation(location, userId, signal);
+    if (!signal.aborted) applySnapshot(snapshot);
+    return resolvedIssuesForReview(snapshot);
+  }, [userId, applySnapshot]);
+
   async function createIssue(value: NewIssue, reviewedResolvedIssueIds: string[]) {
     if (role !== 'resident' && role !== 'admin') return;
     const snapshot = await mutate(() => createSharedIssue(value, userId, reviewedResolvedIssueIds));
-    if ('resolvedIssueIds' in snapshot) {
-      const byId = new Map(snapshot.issues.map(issue => [issue.id, issue]));
-      return snapshot.resolvedIssueIds.flatMap(id => {
-        const issue = byId.get(id);
-        return issue ? [displayIssue(issue)] : [];
-      });
-    }
+    if ('resolvedIssueIds' in snapshot) return resolvedIssuesForReview(snapshot);
     setDraft(undefined); setPlacing(false); setQuery(''); setCategory('Todas as categorias'); setStatus('all'); setCenter({ lat: value.lat, lng: value.lng }); setPublishedId(snapshot.createdId); setSelectedId(snapshot.createdId);
   }
   function deleteIssue(id: string) {
@@ -157,7 +165,7 @@ export default function App() {
     </>:<ManagementPanel key={`${userId}:${activeMode}`} userId={userId} revision={revision} section={activeMode==='admin'?'admin':'service'} initialIssueId={serviceIssueId} onSnapshot={applySnapshot}/> }
     {toast && <div className="toast" role="status"><Check size={18} /><span>{toast}</span><button aria-label="Fechar aviso" onClick={() => setToast('')}><X size={15} /></button></div>}
     {cityInfoOpen&&activeMode==='map'&&mapCity.identity&&<CityInfoModal city={mapCity.identity} onClose={()=>setCityInfoOpen(false)}/>}
-    {draft && <IssueForm position={draft} onClose={() => setDraft(undefined)} onSave={createIssue} onOpenIssue={openIssue} onLocate={locate} locating={locating} />}
+    {draft && <IssueForm position={draft} onClose={() => setDraft(undefined)} onCheckLocation={checkReportLocation} onSave={createIssue} onOpenIssue={openIssue} onLocate={locate} locating={locating} />}
     {justPublished && <Modal title="Relato publicado!" onClose={()=>setSelectedId(undefined)}>
       <div className="report-published"><div className="report-published-success"><CheckCheck size={26} aria-hidden="true"/></div><p>Seu relato já pode ser acompanhado por outras pessoas. Compartilhe para dar mais visibilidade.</p><div className="report-published-summary"><CategoryIcon category={selected.category} size={22}/><div><h3>{selected.title}</h3><p>{selected.address}</p></div></div><IssueShare issue={selected}/><div className="modal-footer"><button className="button-secondary" onClick={()=>setSelectedId(undefined)}>Voltar ao mapa</button><button className="button-primary" onClick={()=>setPublishedId(undefined)}>Ver relato<ArrowUpRight size={16}/></button></div></div>
     </Modal>}

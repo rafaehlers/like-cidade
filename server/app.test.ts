@@ -99,7 +99,7 @@ test('subcategory is optional but must belong to the selected category when supp
   assert.equal(((await (await api.request('/issues')).json()) as IssueSnapshot).revision, saved.revision);
 });
 
-test('publishing requires review of resolved reports on the same street, including new matches', async t => {
+test('checking a map point previews resolved reports and publishing checks for new matches', async t => {
   const api = await start(); t.after(() => api.close());
   const post = (value: Record<string, unknown>) => api.request('/issues', 'POST', { ...payload, ...value });
   const makeReport = async (value: Record<string, unknown>) => {
@@ -127,6 +127,14 @@ test('publishing requires review of resolved reports on the same street, includi
     userId: 'resident-felipe', title: 'Novo buraco junto à oficina', category: 'Buraco', address: 'Em frente à oficina',
     mapAddress: 'Rua Hercilio Luz, 401 — Centro, Itajaí', lat: -26.905, lng: -48.638,
   };
+  const preview = await api.request('/issues/location-review', 'POST', {
+    lat: draft.lat, lng: draft.lng, mapAddress: draft.mapAddress,
+  });
+  assert.equal(preview.status, 200);
+  const locationReview = await preview.json() as IssueSnapshot & { resolvedIssueIds: string[] };
+  assert.deepEqual(locationReview.resolvedIssueIds, [legacy]);
+  assert.equal(locationReview.revision, before.revision);
+
   const warning = await post({ ...draft, reviewedResolvedIssueIds: [] });
   assert.equal(warning.status, 409);
   const review = await warning.json() as IssueSnapshot & { resolvedIssueIds: string[] };
@@ -151,6 +159,10 @@ test('publishing requires review of resolved reports on the same street, includi
 test('a legacy report without a street is suggested only close to its map point', async t => {
   const api = await start(); t.after(() => api.close());
   const value = { ...payload, address: 'Centro, Itajaí', reviewedResolvedIssueIds: [] };
+  const preview = await api.request('/issues/location-review', 'POST', { lat: -26.9102, lng: -48.6664 });
+  assert.equal(preview.status, 200);
+  assert.deepEqual((await preview.json()).resolvedIssueIds, ['example-2']);
+
   const nearby = await api.request('/issues', 'POST', { ...value, lat: -26.9102, lng: -48.6664 });
   assert.equal(nearby.status, 409);
   assert.deepEqual((await nearby.json()).resolvedIssueIds, ['example-2']);

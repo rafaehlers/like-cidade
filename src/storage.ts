@@ -1,4 +1,4 @@
-import type { CreateIssueResult, IssueSnapshot, NewIssue, UserId } from './domain';
+import type { CreateIssueResult, IssueSnapshot, NewIssue, ReportLocation, ReportLocationReview, UserId } from './domain';
 
 async function request<T = IssueSnapshot>(path: string, options: RequestInit = {}, acceptedStatus?: number): Promise<T> {
   let response: Response;
@@ -13,6 +13,9 @@ async function request<T = IssueSnapshot>(path: string, options: RequestInit = {
 }
 const viewerHeaders = (userId:UserId) => ({'X-Demo-User':userId});
 export const loadIssues = (userId:UserId, signal?: AbortSignal) => request('/issues', { signal, headers:viewerHeaders(userId) });
+export const reviewReportLocation = (location: ReportLocation, userId: UserId, signal: AbortSignal) => request<ReportLocationReview>('/issues/location-review', {
+  method: 'POST', headers: viewerHeaders(userId), body: JSON.stringify(location), signal,
+});
 export const createSharedIssue = (value: NewIssue, userId: UserId, reviewedResolvedIssueIds: string[]) => request<CreateIssueResult>('/issues', {
   method: 'POST', headers: viewerHeaders(userId), body: JSON.stringify({ ...value, userId, reviewedResolvedIssueIds }),
 }, 409);

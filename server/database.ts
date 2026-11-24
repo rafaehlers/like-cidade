@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { CATEGORIES, PEOPLE, seedIssues, type Issue, type Status, type Subcategory, type UserId, type NewIssue } from '../src/domain.js';
+import { CATEGORIES, PEOPLE, seedIssues, type Issue, type Status, type Subcategory, type UserId, type NewIssue, type ReportLocation } from '../src/domain.js';
 import { RequestError } from './errors.js';
 import { ProfileStore } from './profiles.js';
 import type { ProfileUpdate } from '../src/profiles.js';
@@ -165,15 +165,19 @@ export class IssueDatabase {
     return {...snapshot,issues,cities,scopes,capabilities:snapshot.capabilities,assignmentVersions:admin?this.management.versions():[],audit:admin?this.management.audit():[]};
   }
 
+  resolvedReportIdsAt(location: ReportLocation) {
+    const locations = this.db.prepare('SELECT id, status, address, map_address AS mapAddress, lat, lng, sample FROM issues').all() as unknown as IssueLocationRow[];
+    return resolvedReportsAtLocation(location, locations.map(report => ({
+      ...report,
+      mapAddress: report.mapAddress ?? (report.sample ? demoReportMapAddress(report) : undefined),
+    })));
+  }
+
   create(value: NewIssue, userId: UserId, photo?: Buffer, reviewedResolvedIssueIds?: string[]) {
     const id = randomUUID(); const at = new Date().toISOString();
     this.write(() => {
       if (reviewedResolvedIssueIds) {
-        const locations = this.db.prepare('SELECT id, status, address, map_address AS mapAddress, lat, lng, sample FROM issues').all() as unknown as IssueLocationRow[];
-        const matches = resolvedReportsAtLocation(value, locations.map(report => ({
-          ...report,
-          mapAddress: report.mapAddress ?? (report.sample ? demoReportMapAddress(report) : undefined),
-        })));
+        const matches = this.resolvedReportIdsAt(value);
         const reviewed = new Set(reviewedResolvedIssueIds);
         if (matches.some(id => !reviewed.has(id))) throw new ReportReviewRequired(matches);
       }
