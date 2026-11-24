@@ -2,6 +2,7 @@
 
 @theme {
   --color-coral: #e8423b;
+  --color-coral-action: #c92f29;
   --color-forest: #277b60;
   --color-muted: var(--text-muted);
   --color-ink: var(--text-primary);
@@ -17,7 +18,7 @@
   :root {
     color-scheme: light;
     --text-primary: #242d29;
-    --text-muted: #7b817f;
+    --text-muted: #6b716f;
     --accent: #277b60;
     --page: #fafaf7;
     --workspace: #f9f9f6;
@@ -144,10 +145,10 @@
   .category-name { background: transparent; }
   .status-badge { @apply inline-flex items-center gap-1 text-[9px] font-medium rounded px-1.5 py-1 whitespace-nowrap; }
   .status-badge i { @apply block w-1 h-1 rounded-full bg-current; }
-  .status-0 { background: #fcf0e7; color: #b18455; }
-  .status-1 { background: #f2edf8; color: #8a6bb1; }
-  .status-2 { background: #edf3fd; color: #6489b8; }
-  .status-3 { background: #edf5eb; color: #658958; }
+  .status-0 { background: #fcf0e7; color: #80562f; }
+  .status-1 { background: #f2edf8; color: #684786; }
+  .status-2 { background: #edf3fd; color: #426487; }
+  .status-3 { background: #edf5eb; color: #4c6b3d; }
   .issue-address { @apply flex gap-1 items-start text-[10px] leading-relaxed text-muted; }
   .issue-address svg { @apply shrink-0 mt-0.5; }
   .issue-card-footer { @apply flex items-center gap-3 px-4 pb-3.5 pt-0.5 text-[9px] text-muted; }
@@ -175,7 +176,7 @@
   .map-controls button { @apply w-10 h-10 flex items-center justify-center hover:bg-stone-50 rounded-lg; }
   .zoom-controls button:first-child { @apply border-b border-stone-100 rounded-b-none; }
   .zoom-controls button:last-child { @apply rounded-t-none; }
-  .button-primary { @apply bg-coral text-white rounded-xl px-5 py-3 flex items-center gap-2 text-xs font-semibold hover:bg-red-600 transition-colors; }
+  .button-primary { @apply bg-coral-action text-white rounded-xl px-5 py-3 flex items-center gap-2 text-xs font-semibold hover:bg-red-600 transition-colors; }
   .button-secondary { @apply border border-stone-200  text-ink rounded-xl px-4 py-2.5 inline-flex items-center justify-center gap-2 text-xs font-medium hover:bg-stone-50 transition-colors; background: var(--surface); }
   .text-button { @apply inline-flex items-center gap-1.5 text-xs text-forest-text font-medium hover:underline; }
   .placing-message { @apply absolute top-20 left-1/2 -translate-x-1/2  text-white rounded-xl px-4 py-3 text-xs flex gap-2 items-center shadow-md w-max max-w-[90%]; background: #242d29; }
@@ -319,7 +320,7 @@
   .mobile-tabs>button { display: flex; align-items: center; justify-content: center; gap: 7px; flex: 1; min-height: 44px; padding: 11px; font-size: 12px; color: var(--text-muted); border-radius: 10px; }
   .mobile-tabs>button[aria-pressed=true] { background: var(--tabs-active); color: var(--accent); font-weight: 600; }
   .mobile-tabs>button span { font-size: 9px; background: var(--border-soft); border-radius: 4px; padding: 1px 4px; }
-  .mobile-tabs>.mobile-report-button { flex: 0 0 44px; height: 44px; padding: 0; background: var(--color-coral); color: white; border-radius: 12px; }
+  .mobile-tabs>.mobile-report-button { flex: 0 0 44px; height: 44px; padding: 0; background: var(--color-coral-action); color: white; border-radius: 12px; }
   .mobile-tabs>.mobile-report-button:hover { background: var(--color-red-600); }
   .sidebar-intro { padding: 23px 24px 14px; }
   .sidebar-intro h1 { font-size: 29px; }
